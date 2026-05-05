@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>新体力テスト結果のJS分析ツール</title>
+<title>新体力テスト結果の評価ツール</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -154,7 +154,7 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f1f5f9;color:#1
 <body>
 
 <div id="header">
-  <h1>新体力テスト結果のJS分析ツール</h1>
+  <h1>新体力テスト結果の評価ツール</h1>
   <p>文部科学省 新体力テスト実施要項に基づく評価と分析</p>
 </div>
 
@@ -347,7 +347,7 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f1f5f9;color:#1
     <div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:12px">得点・評価サマリー</div>
     <div id="score-bars"></div>
     <div id="total-row">
-      <span id="total-label">合計得点</span>
+      <span id="total-label">合計点</span>
       <span id="total-val">-</span>
     </div>
     <div style="font-size:10px;color:#94a3b8;margin-top:2px" id="total-note"></div>
@@ -595,9 +595,9 @@ function parseNormFile(arrayBuffer, targetAge, sex){
 const NORM_FILE_CONFIG=[
   {label:'① 身長・体重',    items:['身長','体重'],                       keys:['height','weight']},
   {label:'② 握力・上体起こし・長座体前屈', items:['握力','上体起こし','長座体前屈'], keys:['grip','situp','forwardbend']},
-  {label:'③ 反復横とび・シャトルラン・持久走',items:['反復横とび','20mシャトルラン','持久走・急歩'],keys:['sidestep','shuttle','endurance']},
+  {label:'③ 反復横とび・持久走/20mシャトルラン',items:['反復横とび','20mシャトルラン','持久走・急歩'],keys:['sidestep','shuttle','endurance']},
   {label:'④ 50m走・立ち幅とび・ハンドボール投げ',items:['50m走','立ち幅とび','ソフトボール投げ・ハンドボール投げ'],keys:['dash50','broadjump','handball']},
-  {label:'⑤ 合計点',        items:['合計点'],                           keys:['totalscore']},
+  {label:'⑤ 合計点',       items:['合計点'],                           keys:['totalscore']},
 ];
 
 function buildNormUI(age, sex){
@@ -1218,7 +1218,7 @@ function exportPDF(){
       </tr>`).join('')}
     </table>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;background:#f8fafc;border:1px solid #cbd5e1;border-top:none;border-radius:0 0 3px 3px">
-      <span style="font-size:12px;font-weight:700;color:#374151">合計得点（8項目）</span>
+      <span style="font-size:12px;font-weight:700;color:#374151">合計点（8項目）</span>
       <span style="font-size:22px;font-weight:900;color:#1e293b">${S.total??'―'}</span>
       ${C.grade?`<div style="display:inline-flex;align-items:center;gap:8px;padding:4px 14px;border-radius:8px;border:2px solid ${gradeCol}40;background:${gradeCol}18;-webkit-print-color-adjust:exact;print-color-adjust:exact">
         <span style="font-size:26px;font-weight:900;color:${gradeCol}">${C.grade}</span>
@@ -1305,7 +1305,7 @@ function exportPDF(){
   const tRows=[
     ['握力',ts.grip],['上体起こし',ts.situp],['長座体前屈',ts.fb],['反復横とび',ts.ss],
     ['持久走/20mシャトルラン',ts.cardio],['50m走',ts.dash],['立ち幅とび',ts.bj],['ハンドボール投げ',ts.hb],
-    ['合計得点',ts.total,true],
+    ['合計点',ts.total,true],
   ];
 
   const radarSection=hasTscore?`

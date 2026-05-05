@@ -59,7 +59,7 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f1f5f9;color:#1
 <body>
 
 <div id="header">
-  <h1>新体力テスト結果のJS比較ツール</h1>
+  <h1>新体力テスト結果の比較ツール</h1>
   <p>文部科学省 新体力テスト実施要項に基づく評価の比較と分析</p>
 </div>
 
@@ -380,7 +380,7 @@ function refreshInfoCard(){
     ['体重 (kg)',d=>d.computed.w!==null?d.computed.w.toFixed(1):'―'],
     ['体脂肪率 (%)',d=>d.computed.bf!==null?d.computed.bf.toFixed(1)+'%':'―'],
     ['BMI',d=>d.computed.bmi!==null?d.computed.bmi.toFixed(1):'―'],
-    ['合計得点',d=>d.computed.S.total!==null?d.computed.S.total:'―'],
+    ['合計点',d=>d.computed.S.total!==null?d.computed.S.total:'―'],
   ];
   for(const[label,fn]of rows2){
     html+=`<tr><th>${label}</th>`;
@@ -580,7 +580,7 @@ th{background:#f0f4f8;font-weight:600}
     ${scoreRow('立ち幅とび (cm)',C=>C.bj,C=>C.S.bj)}
     ${scoreRow('ハンドボール投げ (m)',C=>C.hb,C=>C.S.hb)}
     <tr style="background:#f8fafc">
-      <th style="font-weight:700">合計得点</th>
+      <th style="font-weight:700">合計点</th>
       ${dsets.map((d,i)=>{
         const sc=d.computed.S.total;
         const prev=i>0?dsets[i-1].computed.S.total:null;
@@ -668,7 +668,7 @@ th{background:#f0f4f8;font-weight:600}
     ['50m走',C=>C.ts.dash],
     ['立ち幅とび',C=>C.ts.bj],
     ['ハンドボール投げ',C=>C.ts.hb],
-    ['合計得点',C=>C.ts.total],
+    ['合計点',C=>C.ts.total],
   ];
   const p2TScore=`
   <div class="sec-head" style="margin-top:8px">体力テスト結果のTスコア</div>

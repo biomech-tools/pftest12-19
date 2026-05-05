@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>新体力テスト結果の比較レポート</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f1f5f9;color:#1e293b;min-height:100vh;font-size:14px}
+:root{--navy:#1e3a5f;--navy2:#2a4f7e;--blue:#2563eb;--green:#16a34a;--amber:#d97706;--red:#dc2626}
+
+#header{background:var(--navy);color:#fff;padding:16px 24px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+#header h1{font-size:18px;font-weight:700;letter-spacing:.05em}
+#header p{font-size:11px;color:#93c5fd;margin-top:2px}
+#main{max-width:960px;margin:0 auto;padding:20px 16px;display:flex;flex-direction:column;gap:16px}
+
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid #e2e8f0;padding:20px}
+.card-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:#1e293b;margin-bottom:14px}
+.card-title .badge{width:20px;height:20px;border-radius:4px;background:var(--blue);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:background .15s}
+.btn-primary{background:var(--navy);color:#fff}
+.btn-primary:hover{background:var(--navy2)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
+.btn-secondary:hover{background:#eff6ff}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#15803d}
+.btn-green:disabled{opacity:.5;cursor:not-allowed}
+
+.import-step{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;margin-bottom:8px;transition:border-color .2s}
+.import-step.loaded{border-color:#16a34a;background:#f0fdf4}
+.import-step.error{border-color:#dc2626;background:#fef2f2}
+.import-num{width:28px;height:28px;border-radius:50%;background:#e2e8f0;color:#475569;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.import-step.loaded .import-num{background:#16a34a;color:#fff}
+.import-info{flex:1;font-size:12px}
+.import-info .year-tag{font-weight:700;color:var(--navy);font-size:13px}
+.import-info .sub-tag{color:#64748b;font-size:11px}
+.import-status{font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px}
+.import-status.ok{background:#dcfce7;color:#16a34a}
+.import-status.none{background:#f1f5f9;color:#94a3b8}
+.import-status.err{background:#fee2e2;color:#dc2626}
+.import-file-btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--navy);background:#fff;color:var(--navy)}
+.import-file-btn.loaded{border-color:#16a34a;color:#16a34a}
+.import-file-input{display:none}
+.import-err-msg{font-size:11px;color:#dc2626;padding:4px 14px 6px;display:none}
+
+.info-table{width:100%;border-collapse:collapse;font-size:12px}
+.info-table th{background:#f0f4f8;font-weight:600;padding:7px 10px;border:1px solid #cbd5e1;text-align:left;white-space:nowrap}
+.info-table td{padding:7px 10px;border:1px solid #cbd5e1;text-align:center}
+
+#msg-area{font-size:12px;display:none;padding:8px 12px;border-radius:6px;margin-top:8px}
+#msg-area.ok{background:#dcfce7;color:#16a34a}
+#msg-area.err{background:#fee2e2;color:#dc2626}
+
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>新体力テスト結果のJS比較ツール</h1>
+  <p>文部科学省 新体力テスト実施要項に基づく評価の比較と分析</p>
+</div>
+
+<div id="main">
+
+  <!-- Step 1: データ数選択 -->
+  <div class="card">
+    <div class="card-title"><span class="badge">1</span>比較データ数の選択</div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <label style="font-size:13px;color:#475569;font-weight:500">比較するデータ数（2〜4データ）</label>
+      <select id="count-sel" style="padding:7px 28px 7px 12px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;font-weight:700;background:#fff;appearance:none;background-image:url('data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2364748b%22 stroke-width=%222%22%3E%3Cpolyline points=%226 9 12 15 18 9%22/%3E%3C/svg%3E');background-repeat:no-repeat;background-position:right 10px center;cursor:pointer">
+        <option value="2" selected>2データ分</option>
+        <option value="3">3データ分</option>
+        <option value="4">4データ分</option>
+      </select>
+      <span style="font-size:11px;color:#94a3b8">選択後、Excelデータを順に読み込んでください（同一個人内比較では年号順に自動整列します）</span>
+    </div>
+  </div>
+
+  <!-- Step 2: データインポート -->
+  <div class="card">
+    <div class="card-title"><span class="badge">2</span>Excelデータの読み込み</div>
+    <div id="import-slots"></div>
+    <div id="msg-area"></div>
+  </div>
+
+  <!-- Step 3: 基本情報確認 -->
+  <div class="card" id="info-card" style="display:none">
+    <div class="card-title"><span class="badge">3</span>読み込みデータの確認</div>
+    <div id="info-area"></div>
+  </div>
+
+  <!-- Step 4: 帳票出力 -->
+  <div class="card">
+    <div class="card-title"><span class="badge">4</span>帳票の出力</div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <button class="btn btn-green" id="export-btn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2h9l5 5v15a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+        帳票をダウンロード
+      </button>
+      <span id="export-msg" style="font-size:11px;display:none"></span>
+    </div>
+    <div style="font-size:11px;color:#94a3b8;margin-top:8px">全データが読み込まれると帳票を出力できます。HTMLファイルを開くと自動的に印刷ダイアログが起動します。</div>
+  </div>
+
+</div>
+
+<script>
+// =====================================================================
+//  SCORING TABLES (identical to index.html)
+// =====================================================================
+const SCORE_TABLES={
+  grip:{
+    male:  [{s:10,lo:56,hi:Infinity},{s:9,lo:51,hi:55},{s:8,lo:47,hi:50},{s:7,lo:43,hi:46},{s:6,lo:38,hi:42},{s:5,lo:33,hi:37},{s:4,lo:28,hi:32},{s:3,lo:23,hi:27},{s:2,lo:18,hi:22},{s:1,lo:-Infinity,hi:17}],
+    female:[{s:10,lo:36,hi:Infinity},{s:9,lo:33,hi:35},{s:8,lo:30,hi:32},{s:7,lo:28,hi:29},{s:6,lo:25,hi:27},{s:5,lo:23,hi:24},{s:4,lo:20,hi:22},{s:3,lo:17,hi:19},{s:2,lo:14,hi:16},{s:1,lo:-Infinity,hi:13}]
+  },
+  situp:{
+    male:  [{s:10,lo:35,hi:Infinity},{s:9,lo:33,hi:34},{s:8,lo:30,hi:32},{s:7,lo:27,hi:29},{s:6,lo:25,hi:26},{s:5,lo:22,hi:24},{s:4,lo:19,hi:21},{s:3,lo:16,hi:18},{s:2,lo:13,hi:15},{s:1,lo:-Infinity,hi:12}],
+    female:[{s:10,lo:29,hi:Infinity},{s:9,lo:26,hi:28},{s:8,lo:23,hi:25},{s:7,lo:20,hi:22},{s:6,lo:18,hi:19},{s:5,lo:15,hi:17},{s:4,lo:13,hi:14},{s:3,lo:11,hi:12},{s:2,lo:8,hi:10},{s:1,lo:-Infinity,hi:7}]
+  },
+  forwardbend:{
+    male:  [{s:10,lo:64,hi:Infinity},{s:9,lo:58,hi:63},{s:8,lo:53,hi:57},{s:7,lo:49,hi:52},{s:6,lo:44,hi:48},{s:5,lo:39,hi:43},{s:4,lo:33,hi:38},{s:3,lo:28,hi:32},{s:2,lo:21,hi:27},{s:1,lo:-Infinity,hi:20}],
+    female:[{s:10,lo:63,hi:Infinity},{s:9,lo:58,hi:62},{s:8,lo:54,hi:57},{s:7,lo:50,hi:53},{s:6,lo:45,hi:49},{s:5,lo:40,hi:44},{s:4,lo:35,hi:39},{s:3,lo:30,hi:34},{s:2,lo:23,hi:29},{s:1,lo:-Infinity,hi:22}]
+  },
+  sidestep:{
+    male:  [{s:10,lo:63,hi:Infinity},{s:9,lo:60,hi:62},{s:8,lo:56,hi:59},{s:7,lo:53,hi:55},{s:6,lo:49,hi:52},{s:5,lo:45,hi:48},{s:4,lo:41,hi:44},{s:3,lo:37,hi:40},{s:2,lo:30,hi:36},{s:1,lo:-Infinity,hi:29}],
+    female:[{s:10,lo:53,hi:Infinity},{s:9,lo:50,hi:52},{s:8,lo:48,hi:49},{s:7,lo:45,hi:47},{s:6,lo:42,hi:44},{s:5,lo:39,hi:41},{s:4,lo:36,hi:38},{s:3,lo:32,hi:35},{s:2,lo:27,hi:31},{s:1,lo:-Infinity,hi:26}]
+  },
+  endurance:{
+    male:  [{s:10,lo:-Infinity,hi:299},{s:9,lo:300,hi:316},{s:8,lo:317,hi:333},{s:7,lo:334,hi:355},{s:6,lo:356,hi:382},{s:5,lo:383,hi:410},{s:4,lo:411,hi:450},{s:3,lo:451,hi:499},{s:2,lo:500,hi:560},{s:1,lo:561,hi:Infinity}],
+    female:[{s:10,lo:-Infinity,hi:229},{s:9,lo:230,hi:242},{s:8,lo:243,hi:259},{s:7,lo:260,hi:277},{s:6,lo:278,hi:296},{s:5,lo:297,hi:318},{s:4,lo:319,hi:342},{s:3,lo:343,hi:374},{s:2,lo:375,hi:417},{s:1,lo:418,hi:Infinity}]
+  },
+  shuttle:{
+    male:  [{s:10,lo:125,hi:Infinity},{s:9,lo:113,hi:124},{s:8,lo:102,hi:112},{s:7,lo:90,hi:101},{s:6,lo:76,hi:89},{s:5,lo:63,hi:75},{s:4,lo:51,hi:62},{s:3,lo:37,hi:50},{s:2,lo:26,hi:36},{s:1,lo:-Infinity,hi:25}],
+    female:[{s:10,lo:88,hi:Infinity},{s:9,lo:76,hi:87},{s:8,lo:64,hi:75},{s:7,lo:54,hi:63},{s:6,lo:44,hi:53},{s:5,lo:35,hi:43},{s:4,lo:27,hi:34},{s:3,lo:21,hi:26},{s:2,lo:15,hi:20},{s:1,lo:-Infinity,hi:14}]
+  },
+  dash50:{
+    male:  [{s:10,lo:-Infinity,hi:66},{s:9,lo:67,hi:68},{s:8,lo:69,hi:70},{s:7,lo:71,hi:72},{s:6,lo:73,hi:75},{s:5,lo:76,hi:79},{s:4,lo:80,hi:84},{s:3,lo:85,hi:90},{s:2,lo:91,hi:97},{s:1,lo:98,hi:Infinity}],
+    female:[{s:10,lo:-Infinity,hi:77},{s:9,lo:78,hi:80},{s:8,lo:81,hi:83},{s:7,lo:84,hi:86},{s:6,lo:87,hi:89},{s:5,lo:90,hi:93},{s:4,lo:94,hi:98},{s:3,lo:99,hi:103},{s:2,lo:104,hi:112},{s:1,lo:113,hi:Infinity}]
+  },
+  broadjump:{
+    male:  [{s:10,lo:265,hi:Infinity},{s:9,lo:254,hi:264},{s:8,lo:242,hi:253},{s:7,lo:230,hi:241},{s:6,lo:218,hi:229},{s:5,lo:203,hi:217},{s:4,lo:188,hi:202},{s:3,lo:170,hi:187},{s:2,lo:150,hi:169},{s:1,lo:-Infinity,hi:149}],
+    female:[{s:10,lo:210,hi:Infinity},{s:9,lo:200,hi:209},{s:8,lo:190,hi:199},{s:7,lo:179,hi:189},{s:6,lo:168,hi:178},{s:5,lo:157,hi:167},{s:4,lo:145,hi:156},{s:3,lo:132,hi:144},{s:2,lo:118,hi:131},{s:1,lo:-Infinity,hi:117}]
+  },
+  handball:{
+    male:  [{s:10,lo:37,hi:Infinity},{s:9,lo:34,hi:36},{s:8,lo:31,hi:33},{s:7,lo:28,hi:30},{s:6,lo:25,hi:27},{s:5,lo:22,hi:24},{s:4,lo:19,hi:21},{s:3,lo:16,hi:18},{s:2,lo:13,hi:15},{s:1,lo:-Infinity,hi:12}],
+    female:[{s:10,lo:23,hi:Infinity},{s:9,lo:20,hi:22},{s:8,lo:18,hi:19},{s:7,lo:16,hi:17},{s:6,lo:14,hi:15},{s:5,lo:12,hi:13},{s:4,lo:11,hi:11},{s:3,lo:10,hi:10},{s:2,lo:8,hi:9},{s:1,lo:-Infinity,hi:7}]
+  }
+};
+function scoreIt(val,tbl){for(const r of tbl)if(val>=r.lo&&val<=r.hi)return r.s;return 1;}
+
+const GRADE_TBL={12:{A:51,B:41,C:32,D:22},13:{A:57,B:41,C:32,D:22},14:{A:60,B:47,C:32,D:22},
+  15:{A:61,B:51,C:37,D:22},16:{A:63,B:52,C:41,D:27},17:{A:65,B:53,C:41,D:31},
+  18:{A:65,B:54,C:42,D:31},19:{A:65,B:54,C:43,D:31}};
+function getGrade(age,tot){const g=GRADE_TBL[age];if(!g)return null;if(tot>=g.A)return'A';if(tot>=g.B)return'B';if(tot>=g.C)return'C';if(tot>=g.D)return'D';return'E';}
+const GRADE_COL={A:'#16a34a',B:'#2563eb',C:'#d97706',D:'#ea580c',E:'#dc2626'};
+const GRADE_DESC={A:'非常に優れている',B:'優れている',C:'普通',D:'やや劣る',E:'劣る'};
+
+// =====================================================================
+//  HELPERS
+// =====================================================================
+function tScore(val,stats,lowerBetter=false){
+  if(val===null||val===undefined||!stats||stats.sd===0)return null;
+  return lowerBetter?(stats.mean-val)/stats.sd*10+50:(val-stats.mean)/stats.sd*10+50;
+}
+function maxOf(...a){const v=a.flat().filter(x=>x!==null&&x!==undefined);return v.length?Math.max(...v):null;}
+function avgOf(arr){const v=arr.filter(x=>x!==null&&x!==undefined);return v.length?v.reduce((a,b)=>a+b,0)/v.length:null;}
+
+// =====================================================================
+//  PARSE LOADED EXCEL DATA
+// =====================================================================
+function parseLoadedExcel(arrayBuffer){
+  const wb=XLSX.read(arrayBuffer,{type:'array'});
+  const ws=wb.Sheets['入力データ'];
+  if(!ws)throw new Error('「入力データ」シートが見つかりません');
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  const fm={};
+  for(let i=1;i<rows.length;i++){if(rows[i][0])fm[String(rows[i][0])]=String(rows[i][1]);}
+  const normData={};
+  const ws2=wb.Sheets['規範データ'];
+  if(ws2){
+    const nr=XLSX.utils.sheet_to_json(ws2,{header:1,defval:''});
+    for(let i=1;i<nr.length;i++){
+      const[key,mean,sd]=nr[i];
+      if(key&&!isNaN(Number(mean))&&!isNaN(Number(sd))&&Number(sd)>0)
+        normData[String(key)]={mean:Number(mean),sd:Number(sd)};
+    }
+  }
+  return{fm,normData};
+}
+
+function pN(s){if(s===''||s===null||s===undefined)return null;const n=Number(s);return isNaN(n)?null:n;}
+
+function computeFromFields(fm,normData){
+  const sex=fm.sex||'';
+  const age=pN(fm.age);
+  const h=pN(fm.height),w=pN(fm.weight),bf=pN(fm.bodyfat);
+  const r1=pN(fm.gr1),r2=pN(fm.gr2),l1=pN(fm.gl1),l2=pN(fm.gl2);
+  const rMax=maxOf(r1,r2),lMax=maxOf(l1,l2);
+  const grip=(rMax!==null||lMax!==null)?Math.round(((rMax??0)+(lMax??0))/((rMax!==null?1:0)+(lMax!==null?1:0))):null;
+  const fb=maxOf(pN(fm.fb1),pN(fm.fb2));
+  const ss=maxOf(pN(fm.ss1),pN(fm.ss2));
+  const bj=maxOf(pN(fm.bj1),pN(fm.bj2));
+  const hb=maxOf(pN(fm.hb1),pN(fm.hb2));
+  const emin=pN(fm.emin),esec=pN(fm.esec);
+  const eSecs=(emin!==null||esec!==null)?(emin??0)*60+(esec??0):null;
+  const situp=pN(fm.situp);
+  const shuttle=pN(fm.shuttle);
+  const dash=pN(fm.dash);
+  const bmi=(h&&w)?Math.round(w/((h/100)**2)*10)/10:null;
+  let bmiCat=null,comp=null;
+  if(bmi!==null)bmiCat=bmi<18.5?'低体重':bmi<25?'普通体重':'肥満';
+  if(bmi!==null&&bf!==null&&sex){
+    const fh=sex==='male'?bf>=20:bf>=30;
+    if(bmi>=25)comp=fh?'過体重肥満':'筋肉質';
+    else if(bmi>=18.5)comp=fh?'隠れ肥満':'正常';
+    else comp=fh?'低体重型隠れ肥満':'やせ';
+  }
+  const S={};
+  if(sex){
+    S.grip  =grip!==null  ?scoreIt(grip,  SCORE_TABLES.grip[sex])        :null;
+    S.situp =situp!==null ?scoreIt(situp, SCORE_TABLES.situp[sex])       :null;
+    S.fb    =fb!==null    ?scoreIt(fb,    SCORE_TABLES.forwardbend[sex]) :null;
+    S.ss    =ss!==null    ?scoreIt(ss,    SCORE_TABLES.sidestep[sex])    :null;
+    S.endur =eSecs!==null ?scoreIt(eSecs, SCORE_TABLES.endurance[sex])   :null;
+    S.sht   =shuttle!==null?scoreIt(shuttle,SCORE_TABLES.shuttle[sex])   :null;
+    const dt=dash!==null?Math.round(dash*10):null;
+    S.dash  =dt!==null    ?scoreIt(dt,    SCORE_TABLES.dash50[sex])      :null;
+    S.bj    =bj!==null    ?scoreIt(bj,    SCORE_TABLES.broadjump[sex])   :null;
+    S.hb    =hb!==null    ?scoreIt(hb,    SCORE_TABLES.handball[sex])    :null;
+    S.cardio=maxOf(S.endur,S.sht);
+  }
+  const all8=[S.grip,S.situp,S.fb,S.ss,S.cardio,S.dash,S.bj,S.hb];
+  S.total=all8.every(v=>v!==null)?all8.reduce((a,b)=>a+b,0):null;
+  const grade=(S.total!==null&&age!==null)?getGrade(age,S.total):null;
+  const abilStart  =avgOf([S.dash,S.ss]);
+  const abilSustain=avgOf([S.cardio,S.situp]);
+  const abilReg    =avgOf([S.ss,S.bj,S.hb]);
+  const gN=k=>normData[`${k}_${sex}`]||null;
+  const ts={};
+  if(sex){
+    ts.grip  =tScore(grip,  gN('grip'));
+    ts.situp =tScore(situp, gN('situp'));
+    ts.fb    =tScore(fb,    gN('forwardbend'));
+    ts.ss    =tScore(ss,    gN('sidestep'));
+    ts.shuttle=tScore(shuttle,gN('shuttle'));
+    ts.endur =tScore(eSecs, gN('endurance'),true);
+    ts.dash  =tScore(dash,  gN('dash50'),true);
+    ts.bj    =tScore(bj,    gN('broadjump'));
+    ts.hb    =tScore(hb,    gN('handball'));
+    ts.cardio=maxOf(ts.shuttle,ts.endur);
+    ts.total =tScore(S.total,gN('totalscore'));
+  }
+  const fatMass=(w!==null&&bf!==null)?Math.round(w*bf/100*10)/10:null;
+  const leanMass=(w!==null&&fatMass!==null)?Math.round((w-fatMass)*10)/10:null;
+  return{sex,age,h,w,bf,bmi,bmiCat,comp,grip,situp,fb,ss,bj,hb,eSecs,shuttle,dash,
+    S,grade,abilStart,abilSustain,abilReg,ts,fatMass,leanMass,
+    year:fm.testyear||'',name:(fm.name||'').replace(/[\s\u3000]+/g,' ').trim(),number:fm.number||'',affil:fm.affil||'',grade_:fm.grade||''};
+}
+
+// =====================================================================
+//  APP STATE
+// =====================================================================
+let count=4;
+const datasets=[];
+
+function getCount(){return parseInt(document.getElementById('count-sel').value);}
+
+// Sort by year ascending; ties preserve import order (index in datasets array)
+function sortedDatasets(){
+  return datasets.map((d,i)=>({d,i})).filter(({d})=>d!==null).sort((a,b)=>{
+    const ya=parseInt(a.d.computed.year)||0;
+    const yb=parseInt(b.d.computed.year)||0;
+    if(ya!==yb)return ya-yb;
+    return a.i-b.i;
+  }).map(({d})=>d);
+}
+
+// =====================================================================
+//  BUILD IMPORT SLOTS UI
+// =====================================================================
+function buildSlots(){
+  count=getCount();
+  while(datasets.length>count)datasets.pop();
+  while(datasets.length<count)datasets.push(null);
+
+  const container=document.getElementById('import-slots');
+  container.innerHTML='';
+  for(let i=0;i<count;i++){
+    const d=datasets[i];
+    const step=document.createElement('div');
+    step.className='import-step'+(d?' loaded':'');
+    step.id='slot-'+i;
+
+    const num=document.createElement('div');
+    num.className='import-num';
+    num.textContent=i+1;
+
+    const info=document.createElement('div');
+    info.className='import-info';
+    if(d){
+      const C=d.computed;
+      const affiliMap={junior:'中学校',high:'高等学校',kosen:'高等専門学校',jcollege:'短期大学',university:'大学'};
+      const aff=affiliMap[C.affil]||C.affil||'―';
+      const gr=C.grade_?C.grade_+'年':'―';
+      info.innerHTML=`<div class="year-tag">${C.year||'年不明'}年</div><div class="sub-tag">${aff} ${gr} ${C.age!==null?C.age+'歳':''}  No.${C.number||'―'}</div>`;
+    }else{
+      info.innerHTML=`<div class="year-tag" style="color:#94a3b8">${i+1}件目のデータ</div><div class="sub-tag">Excelファイルを読み込んでください</div>`;
+    }
+
+    const st=document.createElement('span');
+    st.className='import-status '+(d?'ok':'none');
+    st.textContent=d?'✓ 読込済':'未読込';
+    st.id='slot-st-'+i;
+
+    const btn=document.createElement('label');
+    btn.className='import-file-btn'+(d?' loaded':'');
+    btn.setAttribute('for','slot-input-'+i);
+    btn.textContent=d?'再読込':'読み込む';
+
+    const inp=document.createElement('input');
+    inp.type='file';inp.accept='.xlsx,.xls';inp.className='import-file-input';inp.id='slot-input-'+i;
+    inp.addEventListener('change',function(e){
+      if(e.target.files.length>0)handleSlotFile(i,e.target.files[0]);
+    });
+
+    step.append(num,info,st,btn,inp);
+    container.appendChild(step);
+
+    const err=document.createElement('div');
+    err.className='import-err-msg';err.id='slot-err-'+i;
+    container.appendChild(err);
+  }
+  refreshInfoCard();
+  refreshExportBtn();
+}
+
+function handleSlotFile(idx,file){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const{fm,normData}=parseLoadedExcel(e.target.result);
+      const computed=computeFromFields(fm,normData);
+      datasets[idx]={fm,normData,computed};
+      buildSlots();
+      showMsg(true,`${idx+1}件目のデータを読み込みました（${computed.year||'年不明'}年 ${computed.name||''}）`);
+    }catch(err){
+      console.error(err);
+      const errEl=document.getElementById('slot-err-'+idx);
+      if(errEl){errEl.style.display='block';errEl.textContent='読み込みエラー: '+err.message;}
+      showMsg(false,'読み込みエラー: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function refreshInfoCard(){
+  const card=document.getElementById('info-card');
+  const loaded=sortedDatasets();
+  if(loaded.length===0){card.style.display='none';return;}
+  card.style.display='block';
+
+  const affiliMap={junior:'中学校',high:'高等学校',kosen:'高等専門学校',jcollege:'短期大学',university:'大学'};
+  const firstName=loaded[0].computed.name||'―';
+  const sexLabel=loaded[0].computed.sex==='male'?'男子':loaded[0].computed.sex==='female'?'女子':'―';
+
+  let html=`<div style="margin-bottom:12px;font-size:13px"><strong>氏名：</strong>${firstName}　<strong>性別：</strong>${sexLabel}</div>`;
+  html+=`<table class="info-table"><thead><tr><th>項目</th>`;
+  for(const d of loaded){
+    const C=d.computed;
+    const aff=affiliMap[C.affil]||'―';
+    const gr=C.grade_?C.grade_+'年':'―';
+    html+=`<th style="text-align:center">${C.year||'―'}年<br><span style="font-size:10px;font-weight:400">${aff} ${gr} ${C.age!==null?C.age+'歳':''}</span></th>`;
+  }
+  html+=`</tr></thead><tbody>`;
+  const rows2=[
+    ['身長 (cm)',d=>d.computed.h!==null?d.computed.h.toFixed(1):'―'],
+    ['体重 (kg)',d=>d.computed.w!==null?d.computed.w.toFixed(1):'―'],
+    ['体脂肪率 (%)',d=>d.computed.bf!==null?d.computed.bf.toFixed(1)+'%':'―'],
+    ['BMI',d=>d.computed.bmi!==null?d.computed.bmi.toFixed(1):'―'],
+    ['合計得点',d=>d.computed.S.total!==null?d.computed.S.total:'―'],
+  ];
+  for(const[label,fn]of rows2){
+    html+=`<tr><th>${label}</th>`;
+    for(const d of loaded)html+=`<td>${fn(d)}</td>`;
+    html+=`</tr>`;
+  }
+  html+=`</tbody></table>`;
+  document.getElementById('info-area').innerHTML=html;
+}
+
+function refreshExportBtn(){
+  const btn=document.getElementById('export-btn');
+  const allLoaded=datasets.slice(0,count).every(Boolean);
+  btn.disabled=!allLoaded;
+}
+
+function showMsg(ok,text){
+  const el=document.getElementById('msg-area');
+  el.style.display='block';
+  el.className=ok?'ok':'err';
+  el.textContent=text;
+  if(ok)setTimeout(()=>{el.style.display='none';},3000);
+}
+
+// =====================================================================
+//  COLOR HELPERS
+// =====================================================================
+function colorForT(t){
+  if(t===null||t===undefined)return'#94a3b8';
+  if(t>=60)return'#16a34a';if(t>=50)return'#2563eb';if(t>=40)return'#d97706';return'#dc2626';
+}
+function colorForScore(s){
+  if(s===null||s===undefined)return'#94a3b8';
+  if(s>=8)return'#16a34a';if(s>=6)return'#2563eb';if(s>=4)return'#d97706';return'#dc2626';
+}
+
+// =====================================================================
+//  PDF EXPORT
+// =====================================================================
+function exportPDF(){
+  // Use year-sorted datasets for all report generation
+  const dsets=sortedDatasets();
+  if(dsets.length===0)return;
+
+  const n=dsets.length;
+  const affiliMap={junior:'中学校',high:'高等学校',kosen:'高等専門学校',jcollege:'短期大学',university:'大学'};
+  const C0=dsets[0].computed;
+  const personName=C0.name||'―';
+  const sexLabel=C0.sex==='male'?'男子':C0.sex==='female'?'女子':'―';
+
+  // Column width: item column wider (same across all tables), data columns split remaining equally
+  const itemColPct=28;
+  const dataColPct=Math.floor((100-itemColPct)/n);
+
+  // Normalize name: remove all full-width and half-width spaces for comparison
+  function normName(n){return(n||'').replace(/[\s\u3000]/g,'');}
+
+  // Detect if multiple different names exist (space-insensitive)
+  const allNames=dsets.map(d=>d.computed.name||'');
+  const hasMultipleNames=new Set(allNames.filter(Boolean).map(normName)).size>1;
+
+  // Year-only header cells (used in all tables except 基本情報)
+  function yearOnlyCells(){
+    return dsets.map(d=>{
+      const C=d.computed;
+      const nameTag=hasMultipleNames&&C.name?`<br><span style="font-size:8px;font-weight:400;color:#475569">(${C.name})</span>`:'';
+      return`<th style="width:${dataColPct}%;text-align:center;padding:4px 3px;border:1px solid #cbd5e1;background:#f0f4f8;font-size:10px;font-weight:700">${C.year||'―'}年${nameTag}</th>`;
+    }).join('');
+  }
+  // Full header cells (used in 基本情報 only)
+  function yearFullCells(){
+    return dsets.map(d=>{
+      const C=d.computed;
+      const aff=affiliMap[C.affil]||'―';
+      const gr=C.grade_?C.grade_+'年':'―';
+      return`<th style="width:${dataColPct}%;text-align:center;padding:4px 3px;border:1px solid #cbd5e1;background:#f0f4f8;font-size:10px">${C.year||'―'}年<br><span style="font-size:9px;font-weight:400">${aff} ${gr}<br>${C.age!==null?C.age+'歳':''} No.${C.number||'―'}</span></th>`;
+    }).join('');
+  }
+
+  function diffStr(curr,prev,isLowerBetter=false){
+    if(curr===null||prev===null)return'';
+    const d=curr-prev;
+    if(d===0)return`<span style="color:#94a3b8;font-size:9px"> (±0)</span>`;
+    const pos=isLowerBetter?d<0:d>0;
+    const col=pos?'#16a34a':'#dc2626';
+    const sign=d>0?'+':'';
+    const disp=Number.isInteger(curr)&&Number.isInteger(prev)?`${sign}${d}`:`${sign}${d.toFixed(1)}`;
+    return`<span style="color:${col};font-size:9px"> (${disp})</span>`;
+  }
+
+  // ── Shared print CSS ──
+  const printCSS=`
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans','Meiryo',sans-serif;font-size:10px;color:#1e293b;background:#fff}
+@page{margin:0;size:A4 portrait}
+.pa-page{padding:15mm 15mm 8mm;page-break-after:always;height:297mm;box-sizing:border-box;overflow:hidden}
+.pa-page:last-child{page-break-after:auto}
+table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #cbd5e1;padding:8px 5px;font-size:10px}
+th{background:#f0f4f8;font-weight:600}
+.sec-head{background:#1e3a5f;color:#fff;font-size:10px;font-weight:700;padding:3px 7px;border-radius:3px 3px 0 0;margin-top:14px;margin-bottom:0}
+.sec-head:first-child{margin-top:0}
+.print-btn{display:block;margin:8px auto;padding:8px 28px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}
+@media print{.print-btn{display:none}*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+`;
+
+  // ── Page 1 ──
+  // 基本情報
+  const p1Basic=`
+  <div class="sec-head">基本情報</div>
+  <table>
+    <tr>
+      <th style="width:${itemColPct}%">項目</th>${yearFullCells()}
+    </tr>
+    <tr>
+      <th>氏名</th>${dsets.map(d=>`<td style="text-align:center">${d.computed.name||'―'}</td>`).join('')}
+    </tr>
+    <tr>
+      <th>性別</th>${dsets.map(d=>`<td style="text-align:center">${d.computed.sex==='male'?'男子':d.computed.sex==='female'?'女子':'―'}</td>`).join('')}
+    </tr>
+  </table>`;
+
+  // 体格・体組成（前年比付き）
+  function physRow(label,fn,unit,isLower=false){
+    let cells='';
+    for(let i=0;i<dsets.length;i++){
+      const val=fn(dsets[i].computed);
+      const prev=i>0?fn(dsets[i-1].computed):null;
+      const disp=val!==null?(typeof val==='number'?val.toFixed(1):val):'―';
+      const diff=val!==null&&prev!==null?diffStr(val,prev,isLower):'';
+      cells+=`<td style="text-align:center">${disp}${unit?'<span style="font-size:8px;color:#64748b"> '+unit+'</span>':''}${diff}</td>`;
+    }
+    return`<tr><th>${label}</th>${cells}</tr>`;
+  }
+  const p1Physique=`
+  <div class="sec-head" style="margin-top:8px">体格・体組成</div>
+  <table>
+    <tr><th style="width:${itemColPct}%">項目</th>${yearOnlyCells()}</tr>
+    ${physRow('身長',C=>C.h,' cm')}
+    ${physRow('体重',C=>C.w,' kg')}
+    ${physRow('体脂肪率',C=>C.bf,' %')}
+    ${physRow('BMI',C=>C.bmi,'')}
+    <tr>
+      <th>BMI区分</th>
+      ${dsets.map(d=>`<td style="text-align:center">${d.computed.bmiCat||'―'}</td>`).join('')}
+    </tr>
+    <tr>
+      <th>BMI×体脂肪率評価</th>
+      ${dsets.map(d=>`<td style="text-align:center;font-size:9px">${d.computed.comp||'―'}</td>`).join('')}
+    </tr>
+  </table>`;
+
+  // 体力テスト結果
+  function scoreRow(label,fn,scoreFn,isLower=false){
+    let cells='';
+    for(let i=0;i<dsets.length;i++){
+      const val=fn(dsets[i].computed);
+      const sc=scoreFn(dsets[i].computed);
+      const psc=i>0?scoreFn(dsets[i-1].computed):null;
+      const dispVal=val!==null?(typeof val==='number'&&!Number.isInteger(val)?val.toFixed(1):val):'―';
+      const col=colorForScore(sc);
+      const scDisp=sc!==null?`<span style="color:${col};font-weight:700"> [${sc}点]</span>`:'';
+      const diff=sc!==null&&psc!==null?diffStr(sc,psc,isLower):'';
+      cells+=`<td style="text-align:center">${dispVal}${scDisp}${diff}</td>`;
+    }
+    return`<tr><th>${label}</th>${cells}</tr>`;
+  }
+  function cardioDisp(C){
+    if(C.eSecs!==null)return`${Math.floor(C.eSecs/60)}'${String(C.eSecs%60).padStart(2,'0')}"`;
+    if(C.shuttle!==null)return C.shuttle+'回';
+    return null;
+  }
+  const p1Test=`
+  <div class="sec-head" style="margin-top:8px">体力テスト結果（代表値・得点）</div>
+  <table>
+    <tr>
+      <th style="width:${itemColPct}%">項目</th>${yearOnlyCells()}
+    </tr>
+    ${scoreRow('握力 (kg)',C=>C.grip,C=>C.S.grip)}
+    ${scoreRow('上体起こし (回)',C=>C.situp,C=>C.S.situp)}
+    ${scoreRow('長座体前屈 (cm)',C=>C.fb,C=>C.S.fb)}
+    ${scoreRow('反復横とび (点)',C=>C.ss,C=>C.S.ss)}
+    <tr>
+      <th>持久走/20mシャトルラン</th>
+      ${dsets.map((d,i)=>{
+        const C=d.computed;
+        const sc=C.S.cardio;
+        const psc=i>0?dsets[i-1].computed.S.cardio:null;
+        const col=colorForScore(sc);
+        const disp=cardioDisp(C)||'―';
+        const scDisp=sc!==null?`<span style="color:${col};font-weight:700"> [${sc}点]</span>`:'';
+        const diff=sc!==null&&psc!==null?diffStr(sc,psc):'';
+        return`<td style="text-align:center">${disp}${scDisp}${diff}</td>`;
+      }).join('')}
+    </tr>
+    ${scoreRow('50m走 (秒)',C=>C.dash,C=>C.S.dash,true)}
+    ${scoreRow('立ち幅とび (cm)',C=>C.bj,C=>C.S.bj)}
+    ${scoreRow('ハンドボール投げ (m)',C=>C.hb,C=>C.S.hb)}
+    <tr style="background:#f8fafc">
+      <th style="font-weight:700">合計得点</th>
+      ${dsets.map((d,i)=>{
+        const sc=d.computed.S.total;
+        const prev=i>0?dsets[i-1].computed.S.total:null;
+        const gr=d.computed.grade;
+        const gcol=gr?GRADE_COL[gr]:'#94a3b8';
+        const grDisp=gr?`<span style="color:${gcol};font-weight:700"> [${gr}]</span>`:'';
+        const diff=sc!==null&&prev!==null?diffStr(sc,prev):'';
+        return`<td style="text-align:center;font-weight:700;font-size:11px">${sc!==null?sc:'―'}${grDisp}${diff}</td>`;
+      }).join('')}
+    </tr>
+  </table>`;
+
+  // 行動体力の能力カテゴリー
+  const abilRows=[
+    ['行動を起こす能力','50m走・反復横とび',C=>C.abilStart],
+    ['行動を持続する能力','持久走/20mシャトルラン・上体起こし',C=>C.abilSustain],
+    ['行動を調節する能力','反復横とび・立ち幅とび・ハンドボール投げ',C=>C.abilReg],
+  ];
+  const p1Abil=`
+  <div class="sec-head" style="margin-top:8px">行動体力の能力別平均得点</div>
+  <table>
+    <tr><th style="width:${itemColPct}%">能力</th>${yearOnlyCells()}</tr>
+    ${abilRows.map(([cat,sub,fn])=>{
+      let cells='';
+      for(let i=0;i<dsets.length;i++){
+        const val=fn(dsets[i].computed);
+        const prev=i>0?fn(dsets[i-1].computed):null;
+        const col=colorForScore(val!==null?Math.round(val):null);
+        const disp=val!==null?val.toFixed(1):'―';
+        const diff=val!==null&&prev!==null?diffStr(val,prev):'';
+        cells+=`<td style="text-align:center;font-weight:700;color:${col};padding:3.5px 5px">${disp}${diff}</td>`;
+      }
+      return`<tr><th style="font-weight:600;padding:3.5px 5px">${cat}<br><span style="font-size:8px;color:#94a3b8;font-weight:400">${sub}</span></th>${cells}</tr>`;
+    }).join('')}
+  </table>`;
+
+  const p1=`<div class="pa-page">
+  <div style="border-bottom:2px solid #1e3a5f;padding-bottom:5px;margin-bottom:10px">
+    <div style="font-size:20px;font-weight:700;text-align:center;color:#1e3a5f">新体力テスト結果の比較レポート</div>
+  </div>
+  ${p1Basic}
+  ${p1Physique}
+  ${p1Test}
+  ${p1Abil}
+  <div style="text-align:center;margin-top:8mm;font-size:9px;color:#94a3b8">- 1 -</div>
+</div>`;
+
+  // ── Page 2 ──
+  // 体格・体組成分析
+  const p2Comp=`
+  <div class="sec-head" style="margin-top:0">体格・体組成</div>
+  <table>
+    <tr><th style="width:${itemColPct}%">指標</th>${yearOnlyCells()}</tr>
+    ${physRow('体重 (kg)',C=>C.w,'')}
+    ${physRow('体脂肪率 (%)',C=>C.bf,'')}
+    <tr>
+      <th>脂肪量 (kg)</th>
+      ${dsets.map((d,i)=>{
+        const val=d.computed.fatMass;
+        const prev=i>0?dsets[i-1].computed.fatMass:null;
+        const disp=val!==null?val.toFixed(1):'―';
+        const diff=val!==null&&prev!==null?diffStr(val,prev):'';
+        return`<td style="text-align:center">${disp}${diff}</td>`;
+      }).join('')}
+    </tr>
+    <tr>
+      <th>除脂肪量 (kg)</th>
+      ${dsets.map((d,i)=>{
+        const val=d.computed.leanMass;
+        const prev=i>0?dsets[i-1].computed.leanMass:null;
+        const disp=val!==null?val.toFixed(1):'―';
+        const diff=val!==null&&prev!==null?diffStr(val,prev):'';
+        return`<td style="text-align:center">${disp}${diff}</td>`;
+      }).join('')}
+    </tr>
+  </table>`;
+
+  // Tスコア推移表
+  const tsItems=[
+    ['握力',C=>C.ts.grip],
+    ['上体起こし',C=>C.ts.situp],
+    ['長座体前屈',C=>C.ts.fb],
+    ['反復横とび',C=>C.ts.ss],
+    ['持久走/20mシャトルラン',C=>C.ts.cardio],
+    ['50m走',C=>C.ts.dash],
+    ['立ち幅とび',C=>C.ts.bj],
+    ['ハンドボール投げ',C=>C.ts.hb],
+    ['合計得点',C=>C.ts.total],
+  ];
+  const p2TScore=`
+  <div class="sec-head" style="margin-top:8px">体力テスト結果のTスコア</div>
+  <table>
+    <tr><th style="width:${itemColPct}%">項目</th>${yearOnlyCells()}</tr>
+    ${tsItems.map(([label,fn],rowIdx)=>{
+      const isTotal=rowIdx===tsItems.length-1;
+      let cells='';
+      for(let i=0;i<dsets.length;i++){
+        const t=fn(dsets[i].computed);
+        const prev=i>0?fn(dsets[i-1].computed):null;
+        const col=colorForT(t);
+        const disp=t!==null?(Math.round(t*10)/10).toFixed(1):'―';
+        const diff=t!==null&&prev!==null?diffStr(t,prev):'';
+        cells+=`<td style="text-align:center;font-weight:700;color:${col}${isTotal?';background:#f8fafc':''}">${disp}${diff}</td>`;
+      }
+      return`<tr${isTotal?' style="background:#f8fafc"':''}><th${isTotal?' style="background:#f0f4f8;font-weight:700"':''}>${label}</th>${cells}</tr>`;
+    }).join('')}
+  </table>
+  `;
+
+  // レーダーチャート用データ
+  const radarLabels=['握力','上体起こし','長座体前屈','反復横とび','持久走/\n20mシャトルラン','50m走','立ち幅とび','ハンドボール投げ'];
+  const radarDataJS=JSON.stringify(dsets.map(d=>({
+    year:d.computed.year,
+    values:[d.computed.ts.grip,d.computed.ts.situp,d.computed.ts.fb,d.computed.ts.ss,
+            d.computed.ts.cardio,d.computed.ts.dash,d.computed.ts.bj,d.computed.ts.hb]
+  })));
+
+  const LINE_COLORS=['#2563eb','#dc2626','#16a34a','#d97706'];
+
+  const scriptCode=[
+    'var __rd='+radarDataJS+';',
+    'var LINE_COLORS='+JSON.stringify(LINE_COLORS)+';',
+    'function drawMultiRadar(canvas,datasets,labels){',
+    '  if(!canvas||!datasets||datasets.length===0)return;',
+    '  var W=canvas.width,H=canvas.height,cx=W/2,cy=H/2;',
+    '  var N=labels.length,rMax=Math.min(W,H)/2-60,lblPad=56;',
+    '  var ctx=canvas.getContext("2d");',
+    '  ctx.clearRect(0,0,W,H);',
+    '  function ang(i){return(Math.PI*2/N)*i-Math.PI/2;}',
+    '  function tToR(t){return Math.max(0,Math.min(rMax,rMax*(t/100)));}',
+    '  [20,40,50,60,80,100].forEach(function(t){',
+    '    var r=tToR(t);',
+    '    ctx.beginPath();',
+    '    for(var i=0;i<N;i++){var a=ang(i);var x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}',
+    '    ctx.closePath();',
+    '    ctx.strokeStyle=t===100?"#94a3b8":t===50?"#94a3b8":"#e2e8f0";ctx.lineWidth=t===100?1.5:t===50?1.5:0.8;ctx.stroke();',
+    '  });',
+    '  for(var i=0;i<N;i++){var a=ang(i);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(a)*rMax,cy+Math.sin(a)*rMax);ctx.strokeStyle="#e2e8f0";ctx.lineWidth=0.8;ctx.stroke();}',
+    '  datasets.forEach(function(ds,di){',
+    '    var col=LINE_COLORS[di%LINE_COLORS.length];',
+    '    var hasAny=ds.values.some(function(v){return v!==null&&v!==undefined;});',
+    '    if(!hasAny)return;',
+    '    var hex=parseInt(col.slice(1),16);',
+    '    ctx.strokeStyle=col;ctx.lineWidth=2.2;',
+    '    var n2=ds.values.length;',
+    '    for(var ei=0;ei<n2;ei++){',
+    '      var va=ds.values[ei],vb=ds.values[(ei+1)%n2];',
+    '      if(va===null||va===undefined||vb===null||vb===undefined)continue;',
+    '      var ra=tToR(Math.max(0,Math.min(100,va))),rb=tToR(Math.max(0,Math.min(100,vb)));',
+    '      var aa=ang(ei),ab=ang((ei+1)%n2);',
+    '      ctx.beginPath();ctx.moveTo(cx+Math.cos(aa)*ra,cy+Math.sin(aa)*ra);ctx.lineTo(cx+Math.cos(ab)*rb,cy+Math.sin(ab)*rb);ctx.stroke();',
+    '    }',
+    '    ds.values.forEach(function(v,i){',
+    '      if(v===null||v===undefined)return;',
+    '      var r=tToR(Math.max(0,Math.min(100,v)));',
+    '      var a=ang(i),x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;',
+    '      ctx.beginPath();ctx.arc(x,y,3.5,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();',
+    '    });',
+    '  });',
+    '  ctx.font="bold 12px Hiragino Sans,Meiryo,sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";',
+    '  labels.forEach(function(lbl,i){',
+    '    var a=ang(i),dist=rMax+lblPad-10;',
+    '    var lx=cx+Math.cos(a)*dist,ly=cy+Math.sin(a)*dist;',
+    '    var parts=lbl.split("\\n");',
+    '    var lineH=14,totalH=(parts.length-1)*lineH;',
+    '    var mx=6,my=6;lx=Math.max(mx,Math.min(W-mx,lx));',
+    '    var topY=ly-totalH/2-lineH/2;if(topY<my)ly=my+lineH/2;',
+    '    var botY=ly+totalH/2+lineH/2;if(botY>H-my)ly=H-my-lineH/2-totalH/2;',
+    '    ctx.fillStyle="#1e293b";',
+    '    parts.forEach(function(pt,pi){ctx.fillText(pt,lx,ly+(pi-(parts.length-1)/2)*lineH);});',
+    '  });',
+    '  ctx.font="9px Hiragino Sans,Meiryo,sans-serif";ctx.fillStyle="#64748b";',
+    '  ctx.textAlign="right";ctx.textBaseline="middle";',
+    '  [20,50,80].forEach(function(t){ctx.fillText(""+t,cx+tToR(t)-2,cy-4);});',
+    '  var legY=12;',
+    '  ctx.font="bold 10px Hiragino Sans,Meiryo,sans-serif";ctx.textAlign="right";ctx.textBaseline="middle";',
+    '  datasets.forEach(function(ds,di){',
+    '    var col=LINE_COLORS[di%LINE_COLORS.length];',
+    '    var y=legY+di*16;',
+    '    ctx.fillStyle="#1e293b";ctx.fillText(ds.year+"\u5e74",W-8,y);',
+    '    ctx.fillStyle=col;ctx.fillRect(W-8-ctx.measureText(ds.year+"\u5e74").width-22,y-4,18,8);',
+    '  });',
+    '}',
+    'window.addEventListener("load",function(){',
+    '  var labels='+JSON.stringify(radarLabels)+';',
+    '  if(__rd){var c=document.getElementById("multi-radar");if(c)drawMultiRadar(c,__rd,labels);}',
+    '  setTimeout(function(){window.print();},600);',
+    '});'
+  ].join('\n');
+
+  const p2=`<div class="pa-page">
+  <div style="border-bottom:2px solid #1e3a5f;padding-bottom:5px;margin-bottom:10px">
+    <div style="font-size:20px;font-weight:700;text-align:center;color:#1e3a5f">新体力テスト結果の比較レポート（分析資料）</div>
+  </div>
+  ${p2Comp}
+  ${p2TScore}
+  <canvas id="multi-radar" width="520" height="340" style="display:block;margin:calc(10px + 6mm) auto 0"></canvas>
+  <div style="text-align:center;margin-top:18mm;font-size:9px;color:#94a3b8">- 2 -</div>
+</div>`;
+
+  const T={
+    doctype:'\u003c!DOCTYPE html\u003e',htmlO:'\u003chtml lang="ja"\u003e',htmlC:'\u003c/html\u003e',
+    headO:'\u003chead\u003e',headC:'\u003c/head\u003e',meta:'\u003cmeta charset="UTF-8"\u003e',
+    titleO:'\u003ctitle\u003e',titleC:'\u003c/title\u003e',
+    styleO:'\u003cstyle\u003e',styleC:'\u003c/style\u003e',
+    scriptO:'\u003cscript\u003e',scriptC:'\u003c/script\u003e',
+    bodyO:'\u003cbody\u003e',bodyC:'\u003c/body\u003e',
+    btnO:'\u003cbutton class="print-btn" onclick="window.print()"\u003e',btnC:'\u003c/button\u003e',
+  };
+
+  const fullHTML=T.doctype+T.htmlO+
+    T.headO+T.meta+T.titleO+'新体力テスト結果の比較レポート'+T.titleC+
+    T.styleO+printCSS+T.styleC+T.scriptO+scriptCode+T.scriptC+T.headC+
+    T.bodyO+T.btnO+'印刷する'+T.btnC+p1+p2+T.bodyC+T.htmlC;
+
+  const blob=new Blob([fullHTML],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const _now=new Date();
+  const _dateStr=`${_now.getFullYear()}${String(_now.getMonth()+1).padStart(2,'0')}${String(_now.getDate()).padStart(2,'0')}`;
+  a.href=url;a.download=`体力テスト比較レポート_${_dateStr}.html`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),10000);
+  const msg=document.getElementById('export-msg');
+  msg.style.display='inline';msg.style.color='#16a34a';
+  msg.textContent='HTMLファイルをダウンロードしました。ファイルを開くと印刷ダイアログが起動します。';
+  setTimeout(()=>{msg.style.display='none';},4000);
+}
+
+// =====================================================================
+//  INIT
+// =====================================================================
+document.getElementById('count-sel').addEventListener('change',buildSlots);
+document.getElementById('export-btn').addEventListener('click',exportPDF);
+buildSlots();
+</script>
+<script>
+window.addEventListener("load", () => {
+  const lastShown = localStorage.getItem("warningLastShown");
+  const now = Date.now();
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  if (!lastShown || now - lastShown > THIRTY_DAYS) {
+    alert("CAUTION: This tool is protected by copyright (\u00a92026 A. Azuma. All Rights Reserved). Unauthorized downloading, copying, or redistribution is prohibited.\n\u6ce8\u610f\uff1a\u672c\u30c4\u30fc\u30eb\u306f\u8457\u4f5c\u6a29\u306b\u3088\u308a\u4fdd\u8b77\u3055\u308c\u3066\u3044\u307e\u3059 (\u00a92026 A. Azuma. All Rights Reserved)\uff0e\u7121\u65ad\u3067\u306e\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\uff0c\u8907\u88fd\uff0c\u518d\u914d\u5e03\u3092\u7981\u3058\u307e\u3059\uff0e");
+    localStorage.setItem("warningLastShown", now);
+  }
+});
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey && e.key.toLowerCase() === 's') e.preventDefault();
+  if (e.ctrlKey && e.key.toLowerCase() === 'p') e.preventDefault();
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i') e.preventDefault();
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'c') e.preventDefault();
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'j') e.preventDefault();
+  if (e.key === 'F12') e.preventDefault();
+});
+</script>
+</body>
+</html>

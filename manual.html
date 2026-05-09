@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>新体力テスト結果の評価・比較ツールの使用方法</title>
+<title>新体力テスト結果の評価レポート作成ツール（manual）</title>
 
 <style>
 body {
@@ -25,9 +25,6 @@ nav a {
   margin-bottom: 5px;
   text-decoration: none;
 }
-h2 {
-  margin-top: 40px;
-}
 figure {
   margin: 25px 0;
   text-align: center;
@@ -40,6 +37,35 @@ figcaption {
   font-size: 0.9em;
   color: #555;
 }
+
+/* ★ 横長・縦短のポップアップ ★ */
+#contactModal {
+  display:none;
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%, -50%);
+  width:500px;          /* 横長 */
+  background:white;
+  border:2px solid #333;
+  padding:20px;
+  box-shadow:0 0 20px rgba(0,0,0,0.4);
+  z-index:9999;
+}
+#contactOverlay {
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.4);
+  z-index:9998;
+}
+#contactContent p {
+  margin: 5px 0;
+  line-height: 1.4;
+}
 </style>
 </head>
 
@@ -50,75 +76,86 @@ figcaption {
   <a href="t-score.html">T-Score</a>
   <a href="https://www.e-stat.go.jp/" target="_blank">e-Stat</a>
   <a href="manual.pdf" target="_blank">PDF</a>
-  <a href="contact.html" target="_blank">Contact</a>
+  <a href="#" onclick="openContact()">Contact</a>
 </nav>
 
-<h1>新体力テスト結果の評価ツール・比較ツールの使用方法</h1>
+<h1>新体力テスト結果の評価レポート作成ツール（manual）</h1>
 
 <p>
-文科省の新体力テスト結果を評価したり，比較するための帳票出力ツールはそれぞれ JavaScript で構築され（JSツール），以下の URL から公開されている．これらを用い，ユーザー自身がオンラインで個人の体力テスト結果を評価するための帳票や複数年のデータを比較する帳票を取得することができる．
+文科省の新体力テスト結果を評価したり，比較するための帳票出力ツールはそれぞれ JavaScript で構築され（JSツール），以下の URL から公開されている．
 </p>
 
 <p>
-（a. テスト結果1回分の評価・分析）  
-<a href="https://biomech-tools.github.io/petest12-19/" target="_blank">
-https://biomech-tools.github.io/petest12-19/
-</a>
-<br>
-（b. テスト結果複数分の比較・分析）  
-<a href="https://biomech-tools.github.io/petest12-19/comparison.html" target="_blank">
-https://biomech-tools.github.io/petest12-19/comparison.html
-</a>
+（a）<a href="https://biomech-tools.github.io/petest12-19/" target="_blank">https://biomech-tools.github.io/petest12-19/</a><br>
+（b）<a href="https://biomech-tools.github.io/petest12-19/comparison.html" target="_blank">https://biomech-tools.github.io/petest12-19/comparison.html</a>
 </p>
 
 <hr>
 
-<h2>A. 新体力テスト結果の評価レポートのための入力と出力（帳票印刷）</h2>
+<h2>A. 新体力テスト結果の評価レポートのための入力と出力</h2>
 
 <p>
-上記 a のリンクを開き，データを入力する（標準データの読み込みについては  
-<a href="t-score.html">T-Score を参照</a>）．入力が完了したら入力データを保存する（図中赤〇印をクリック, Excel形式）．体脂肪率の入力や標準データの読み込みを行わない場合は 2 ページ目の分析資料は表示されない．
+上記 a のリンクを開き，データを入力する（標準データの読み込みについては <a href="t-score.html">T-Score を参照</a>）．
 </p>
 
 <figure>
   <img src="img/manual-1.png">
-  <figcaption>図1：基本情報・体力テスト結果入力画面</figcaption>
 </figure>
 
 <p>
-次に，画面右下の「帳票をダウンロード」ボタンをクリックすると，HTML形式のファイルがダウンロードフォルダにダウンロードされる．それを開くと自動的に印刷画面が開いて印刷実行が求められる（両面印刷を指定する）．入力データは比較レポートを出力するためには必須のファイルとなる．
+入力が完了したら入力データを保存する（Excel形式）．次に「帳票をダウンロード」をクリックすると HTML がダウンロードされ，自動的に印刷画面が開く．
 </p>
 
 <figure>
   <img src="img/manual-2.png">
-  <figcaption>図2：帳票ダウンロードボタン</figcaption>
 </figure>
 
 <hr>
 
-<h2>B. 新体力テスト結果の比較レポートのための入力と出力（帳票印刷）</h2>
+<h2>B. 新体力テスト結果の比較レポートのための入力と出力</h2>
 
 <p>
-上記 b のリンクを開き，A で保存した保存データファイル（Excel形式）を指定したデータ数分（2～4データ）読み込む．
+上記 b のリンクを開き，A で保存した Excel データを 2〜4 個読み込む．
 </p>
 
 <figure>
   <img src="img/manual-3.png">
-  <figcaption>図3：Excelデータ 読み込み画面</figcaption>
 </figure>
 
 <p>
-次に，左下にある「帳票をダウンロード」ボタンをクリックすると，HTML形式のファイルがダウンロードフォルダにダウンロードされる．それを開くと自動的に印刷画面が開いて印刷実行が求められる（両面印刷を指定する）．プリンターによって 2 ページに印刷が収まらない場合は「フチなし」を指定する．
+「帳票をダウンロード」をクリックすると HTML がダウンロードされ，自動的に印刷画面が開く．
 </p>
 
 <figure>
   <img src="img/manual-4.png">
-  <figcaption>図4：帳票ダウンロードボタン</figcaption>
 </figure>
 
 <p>
-入力データファイル（A）や帳票の HTML ファイル（A，B）はいずれもダウンロードフォルダに保存される．
+入力データファイル（A）や帳票 HTML（A,B）はダウンロードフォルダに保存される．
 </p>
+
+<!-- ★ Contact ポップアップ（埋め込み） -->
+<div id="contactOverlay" onclick="closeContact()"></div>
+
+<div id="contactModal">
+  <div id="contactContent">
+    <p><strong>A. Azuma</strong></p>
+    <p>E-mail: jf9psa@jarl.com</p>
+    <p>Requests for specification changes or customisation, questions regarding operation, and inquiries regarding commercial use will not be accepted.</p>
+  </div>
+  <button onclick="closeContact()">Close</button>
+</div>
+
+<script>
+function openContact() {
+  document.getElementById("contactOverlay").style.display = "block";
+  document.getElementById("contactModal").style.display = "block";
+}
+function closeContact() {
+  document.getElementById("contactOverlay").style.display = "none";
+  document.getElementById("contactModal").style.display = "none";
+}
+</script>
 
 </body>
 </html>

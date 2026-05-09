@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>標準化（Tスコア）の方法</title>
+
+<style>
+body {
+  max-width: 900px;
+  margin: auto;
+  padding: 15px;
+  font-family: sans-serif;
+  line-height: 1.8;
+}
+nav {
+  background: #333;
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+}
+nav a {
+  color: white;
+  margin-right: 20px;
+  margin-bottom: 5px;
+  text-decoration: none;
+}
+figure {
+  margin: 25px 0;
+  text-align: center;
+}
+img {
+  max-width: 100%;
+  height: auto;
+}
+figcaption {
+  font-size: 0.9em;
+  color: #555;
+}
+</style>
+</head>
+
+<body>
+
+<nav>
+  <a href="manual.html">Home</a>
+  <a href="t-score.html">T-Score</a>
+  <a href="https://www.e-stat.go.jp/" target="_blank">e-Stat</a>
+  <a href="t-score.pdf" target="_blank">PDF</a>
+  <a href="contact.html" target="_blank">Contact</a>
+</nav>
+
+<h1>標準化（Tスコア）のための平均値と標準偏差の取得方法</h1>
+
+<p>
+文科省の新体力テストに基づく体力・運動能力調査（スポーツ庁）は政府統計の総合窓口（e-Stat）で年度毎に公開されており，標準データとして活用し得る平均値と標準偏差を Excel ファイルから取得することができる．
+<br>
+<a href="https://www.e-stat.go.jp/stat-search/files?page=1&toukei=00402102&tstat=000001088875" target="_blank">
+https://www.e-stat.go.jp/stat-search/files?page=1&toukei=00402102&tstat=000001088875
+</a>
+</p>
+
+<hr>
+
+<h2>1. e-Stat の年度を選択する</h2>
+
+<p>上記のリンクから e-Stat の Web サイトを開く．参照したい年度を選択する．</p>
+
+<figure>
+  <img src="img/tscore-1.png">
+  <figcaption>図1：e-Stat 年度選択画面</figcaption>
+</figure>
+
+<hr>
+
+<h2>2. データセットから 5 つの Excel ファイルをダウンロードする</h2>
+
+<p>
+以下の項目に該当する Excel ファイルをダウンロードする（計 5 ファイル）．
+</p>
+
+<ul>
+  <li>握力、上体起こし、長座体前屈</li>
+  <li>反復横とび、20mシャトルラン、持久走･急歩</li>
+  <li>50m走、立ち幅とび、ソフトボール投げ・ハンドボール投げ</li>
+  <li>合計点</li>
+  <li>身長、体重</li>
+</ul>
+
+<p>
+これらのファイル名には体力テストの名称が含まれていないので，混同しないようにファイル名を変更してもよい．
+</p>
+
+<p><strong>※平成15年度より以前はフォーマットが異なるため参照できない．</strong></p>
+
+<figure>
+  <img src="img/tscore-2.png">
+  <figcaption>図2：データセット一覧（5つの Excel ファイル）</figcaption>
+</figure>
+
+<hr>
+
+<h2>3. JSツールで年齢と性別を指定する</h2>
+
+<p>
+新体力テスト結果の評価レポート作成ツール（以下のリンク）において，ダウンロードした 5 つのファイルをインポートする．
+<br>
+<a href="https://biomech-tools.github.io/petest12-19/" target="_blank">
+https://biomech-tools.github.io/petest12-19/
+</a>
+</p>
+
+<figure>
+  <img src="img/tscore-3.png">
+  <figcaption>図3：JSツールの入力画面（年齢と性別を指定）</figcaption>
+</figure>
+
+<hr>
+
+<h2>4. 年齢別標準データのインポート</h2>
+
+<p>
+年齢と性別を指定すると，下部に「年齢別標準データのインポート」の各項目（①～⑤）が表示される．  
+該当する Excel ファイルを「読み込む」ボタンでひとつずつインポートする．成功すると「読込済」と表示される．
+</p>
+
+<p><strong>※インポート後，各Excelファイルは削除してよい．</strong></p>
+
+<figure>
+  <img src="img/tscore-4.png">
+  <figcaption>図4：年齢別標準データのインポート画面</figcaption>
+</figure>
+
+</body>
+</html>

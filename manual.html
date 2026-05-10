@@ -175,7 +175,7 @@ function closeContact() {
 <div id="counter">loading...</div>
 
 <script>
-fetch('https://api.countapi.xyz/hit/biomech-tools.github.io/petest12-19/visits')
+fetch('https://api.countapi.xyz/hit/biomech-tools.github.io/visits')
   .then(res => res.json())
   .then(data => {
     document.getElementById('counter').innerText = data.value;

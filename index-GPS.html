@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPS Activity Calculator</title>
+
+<!-- Excel 出力用 -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<!-- グラフ描画用 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+  font-family: sans-serif;
+  padding: 10px;
+}
+h2 {
+  margin-top: 20px;
+}
+button, select {
+  font-size: 1.1em;
+  padding: 8px;
+  margin: 5px 0;
+  width: 100%;
+}
+input {
+  font-size: 1.1em;
+  padding: 8px;
+  margin: 5px 0;
+  width: auto;
+}
+#result {
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px solid #aaa;
+}
+.hidden {
+  display: none;
+}
+label {
+  display: block;
+}
+
+/* 上段3カラム */
+.row3 {
+  display: flex;
+  gap: 8px;
+}
+.row3 > .col-lang   { flex: 1.0; }
+.row3 > .col-tz     { flex: 0.8; }
+.row3 > .col-model  { flex: 1.2; }
+
+/* 計算実行ボタン（全幅） */
+#processBtn {
+  width: 100%;
+  font-size: 1.2em;
+  padding: 10px;
+}
+
+/* 体重変更・データ保存・グラフ表示（3 つ横並び） */
+.row3btn {
+  display: flex;
+  gap: 8px;
+}
+#changeWeightBtn { flex: 1; }
+#saveBtn         { flex: 1; }
+#graphBtn        { flex: 1; }
+
+/* ファイル選択行 */
+#fileRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+#fileBtn {
+  width: 50%;
+}
+#fileName {
+  flex: 1;
+  font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<h2 id="title">GPS 活動量計算ツール</h2>
+
+<!-- 上段3カラム -->
+<div class="row3">
+  <div class="col-lang">
+    <label id="langLabel">言語 / Language</label>
+    <select id="langSelect">
+      <option value="ja">日本語</option>
+      <option value="en">English</option>
+    </select>
+  </div>
+
+  <div class="col-tz">
+    <label id="tzLabel">JST / UTC</label>
+    <select id="tzSelect">
+      <option value="JST">JST</option>
+      <option value="UTC">UTC</option>
+    </select>
+  </div>
+
+  <div class="col-model">
+    <label id="timeGenLabel">時刻モデル</label>
+    <select id="timeGenSelect">
+      <option value="none">Use Time Data</option>
+      <option value="tobler">Tobler Estimation</option>
+    </select>
+  </div>
+</div>
+
+<div id="constantSpeedBox" class="hidden">
+  <label id="constSpeedLabel">速度 (km/h)</label>
+  <input type="number" id="constSpeedInput" value="3">
+</div>
+
+<label id="fileLabel">GPS ファイルを選択</label>
+
+<!-- ファイル選択行 -->
+<div id="fileRow">
+  <button id="fileBtn">ファイル選択</button>
+  <div id="fileName">(No file)</div>
+</div>
+<input type="file" id="fileInput" class="hidden">
+
+<!-- 計算実行（全幅） -->
+<button id="processBtn">計算実行</button>
+
+<!-- 体重変更・データ保存・グラフ表示（3つ横並び） -->
+<div class="row3btn">
+  <button id="changeWeightBtn">体重変更</button>
+  <button id="saveBtn">データ保存</button>
+  <button id="graphBtn">グラフ表示</button>
+</div>
+
+<div id="result"></div>
+
+<!-- グラフ表示エリア -->
+<div id="graphArea"></div>
+<script>
+/* ================================
+   i18n
+================================ */
+const i18n = {
+  ja: {
+    title: "GPS 活動量計算ツール",
+    langLabel: "言語 / Language",
+    tzLabel: "JST / UTC",
+    timeGenLabel: "時刻モデル",
+    constSpeedLabel: "速度 (km/h)",
+    fileLabel: "GPS ファイルを選択",
+    fileBtn: "ファイル選択",
+    process: "計算実行",
+    mets: "平均 METs",
+    kcalmin: "平均 kcal/分",
+    ex: "Ex (METs･時)",
+    kcal: "kcal",
+    weightPrompt: "体重(kg)を入力してください",
+    weightChange: "体重変更",
+    totalTime: "総時間",
+    totalDistance: "総距離",
+    ascentDescent: "上昇/下降",
+    noData: "データなし",
+    unknownFormat: "未知のファイル形式です",
+    selectFile: "ファイルを選択してください",
+  },
+  en: {
+    title: "GPS Activity Calculator",
+    langLabel: "Language",
+    tzLabel: "JST / UTC",
+    timeGenLabel: "Time model",
+    constSpeedLabel: "Speed (km/h)",
+    fileLabel: "Select GPS file",
+    fileBtn: "Select File",
+    process: "Run calculation",
+    mets: "Average METs",
+    kcalmin: "Average kcal/min",
+    ex: "Ex (METs·hour)",
+    kcal: "kcal",
+    weightPrompt: "Enter your body mass (kg)",
+    weightChange: "Change body mass",
+    totalTime: "Total time",
+    totalDistance: "Total distance",
+    ascentDescent: "Ascent/Descent",
+    noData: "No data",
+    unknownFormat: "Unknown file format",
+    selectFile: "Please select a file",
+  }
+};
+
+let currentLang = "ja";
+let timeMode = "JST";
+
+function applyI18n() {
+  const t = i18n[currentLang];
+  document.getElementById("title").textContent = t.title;
+  document.getElementById("langLabel").textContent = t.langLabel;
+  document.getElementById("tzLabel").textContent = t.tzLabel;
+  document.getElementById("timeGenLabel").textContent = t.timeGenLabel;
+  document.getElementById("constSpeedLabel").textContent = t.constSpeedLabel;
+  document.getElementById("fileLabel").textContent = t.fileLabel;
+  document.getElementById("fileBtn").textContent = t.fileBtn;
+  document.getElementById("processBtn").textContent = t.process;
+  document.getElementById("changeWeightBtn").textContent = t.weightChange;
+}
+applyI18n();
+
+/* ================================
+   UI イベント
+================================ */
+document.getElementById("langSelect").addEventListener("change", e => {
+  currentLang = e.target.value;
+  timeMode = currentLang === "ja" ? "JST" : "UTC";
+  document.getElementById("tzSelect").value = timeMode;
+  applyI18n();
+});
+
+document.getElementById("fileBtn").addEventListener("click", () => {
+  document.getElementById("fileInput").click();
+});
+
+document.getElementById("fileInput").addEventListener("change", e => {
+  const f = e.target.files[0];
+  document.getElementById("fileName").textContent = f ? f.name : "(No file)";
+  document.getElementById("timeGenSelect").value = "none";
+});
+
+document.getElementById("tzSelect").addEventListener("change", e => {
+  timeMode = e.target.value;
+});
+
+/* ================================
+   体重管理
+================================ */
+function getBodyMass() {
+  let w = localStorage.getItem("bodymass");
+  if (!w) {
+    w = prompt(i18n[currentLang].weightPrompt);
+    if (!w) w = 60;
+    localStorage.setItem("bodymass", w);
+  }
+  return parseFloat(w);
+}
+
+document.getElementById("changeWeightBtn").addEventListener("click", () => {
+  const current = localStorage.getItem("bodymass") || "";
+  const w = prompt(i18n[currentLang].weightPrompt, current);
+  if (w) localStorage.setItem("bodymass", w);
+});
+
+/* ================================
+   ファイル形式判定
+================================ */
+function detectFormat(text) {
+  if (text.includes("<gpx")) return "gpx";
+  return "unknown";
+}
+
+/* ================================
+   GPX パーサー
+================================ */
+function parseGPX(text) {
+  const parser = new DOMParser();
+  const xml = parser.parseFromString(text, "application/xml");
+
+  let pts = [...xml.getElementsByTagName("trkpt")];
+  if (pts.length === 0) pts = [...xml.getElementsByTagName("rtept")];
+
+  return pts.map(pt => {
+    const lat = parseFloat(pt.getAttribute("lat"));
+    const lon = parseFloat(pt.getAttribute("lon"));
+const eleNode = pt.getElementsByTagNameNS("*", "ele")[0];
+const ele = eleNode ? parseFloat(eleNode.textContent) : 0;
+    const timeNode = pt.getElementsByTagName("time")[0];
+    let time = null;
+    if (timeNode) {
+      const txt = timeNode.textContent.trim();
+      if (txt.length > 0) time = new Date(txt);
+    }
+    return { lat, lon, alt: ele, time };
+  });
+}
+
+/* ================================
+   距離計算
+================================ */
+function toRad(d) { return d * Math.PI / 180; }
+
+function distance2D(lat1, lon1, lat2, lon2) {
+  const R = 6371000;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat/2)**2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+/* ================================
+   Tobler 時刻生成（dt 最小 1 秒）
+================================ */
+function generateTimesTobler(points, startTime) {
+  const result = [];
+  let t = new Date(startTime);
+
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+
+    if (p.alt == null || isNaN(p.alt)) {
+      p.alt = i === 0 ? 0 : points[i - 1].alt;
+    }
+
+    // ★ 最初の点
+    if (i === 0) {
+      result.push({ ...p, time: new Date(t) });
+      continue;
+    }
+
+    // ★ 2番目の点は必ず points[1] を使う（距離0問題を回避）
+    const p1 = result[i - 1];
+    const p2 = points[i];
+
+    let d2d = distance2D(p1.lat, p1.lon, p2.lat, p2.lon);
+    let dh = p2.alt - p1.alt;
+    let d = Math.sqrt(d2d*d2d + dh*dh);
+
+    // ★ 距離が 0 の場合は「強制的に 1m」とする
+    if (d < 1) d = 1;
+
+    const s = dh / d;
+    const v = 6 * Math.exp(-3.5 * Math.abs(s + 0.05));
+
+    let dt = d / (v * 1000 / 3600);
+    if (dt < 1) dt = 1;  // ★ 最低1秒
+if (dt > 10) dt = 10;   // ★ 最大10秒
+
+    t = new Date(t.getTime() + dt * 1000);
+    result.push({ ...p2, time: new Date(t) });
+  }
+
+  return result;
+}
+
+
+/* ================================
+   20秒区間生成
+================================ */
+function nearest(points, target) {
+  let best = null, diff = Infinity;
+  for (const p of points) {
+    const d = Math.abs(p.time - target);
+    if (d < diff) { diff = d; best = p; }
+  }
+  return best;
+}
+
+function slice20(points) {
+  const segs = [];
+  if (points.length < 2) return segs;
+
+  let t = points[0].time;
+  const end = points[points.length - 1].time;
+
+  while (t < end) {
+    const t2 = new Date(t.getTime() + 20000);
+
+    let p1 = nearest(points, t);
+    let p2 = nearest(points, t2);
+
+    // ★ p2 が p1 と同じなら、必ず次の点を使う
+    if (p1 === p2) {
+      const idx = points.indexOf(p1);
+      if (idx + 1 < points.length) {
+        p2 = points[idx + 1];
+      } else {
+        break;
+      }
+    }
+
+    // ★ p2 の time が p1 より後ろでなければ強制的に次の点へ
+    if (p2.time <= p1.time) {
+      const idx = points.indexOf(p1);
+      if (idx + 1 < points.length) {
+        p2 = points[idx + 1];
+      } else {
+        break;
+      }
+    }
+
+    segs.push({ start: p1, end: p2 });
+    t = t2;
+  }
+  return segs;
+}
+
+/* ================================
+   Ci（歩行/走行）
+================================ */
+function Cw(i) {
+  return 280.5*i**5 - 58.7*i**4 - 76.8*i**3 + 51.9*i**2 + 19.6*i + 2.5;
+}
+function Cr(i) {
+  return 155.4*i**5 - 30.4*i**4 - 43.3*i**3 + 46.3*i**2 + 19.5*i + 3.6;
+}
+
+/* ================================
+   METs 計算
+================================ */
+function processSegments(segs, bodymass) {
+  let exCum = 0, kcalCum = 0;
+  const results = [];
+
+  for (const s of segs) {
+    const d2d = distance2D(s.start.lat, s.start.lon, s.end.lat, s.end.lon);
+    const dh = s.end.alt - s.start.alt;
+    const d = Math.sqrt(d2d*d2d + dh*dh);
+
+    if (d < 5) continue;
+    if (Math.abs(dh) > 5) continue;
+
+    const dt = 20;
+    const v_mps = d / dt;
+    const running = v_mps >= 1.11;
+
+    const i = Math.max(-0.5, Math.min(0.5, dh / d));
+    const Ci = running ? Cr(i) : Cw(i);
+
+    const Ec = Ci * d;
+
+    const Ek_net_per_kg = Ec * 0.000239 * (60 / dt);
+    const Ek_net = Ek_net_per_kg * bodymass;
+
+    const Ek_rest = 0.0175 * bodymass;
+
+    const Ek_total = Ek_net + Ek_rest;
+
+    let METs = Ek_total / (0.0175 * bodymass);
+    if (METs < 1) METs = 1;
+    METs = Math.min(METs, 18);
+
+    const exDelta = METs * (dt / 3600);
+    const kcalDelta = Ek_total * (dt / 60);
+
+    exCum += exDelta;
+    kcalCum += kcalDelta;
+
+results.push({
+  start: s.start.time,
+  alt: s.start.alt,   // ★ これを追加
+  d, dh, i,
+  speed: v_mps * 3.6,
+  running,
+  METs,
+  Ek: Ek_total,
+  exCum,
+  kcalCum
+});
+  }
+  return results;
+}
+
+/* ================================
+   累積距離
+================================ */
+function addCumulativeDistance(res) {
+  let cum = 0;
+  for (const r of res) {
+    cum += r.d;
+    r.cumDist = cum;
+  }
+}
+
+/* ================================
+   結果表示
+================================ */
+function showResult(res, stats) {
+  const t = i18n[currentLang];
+
+  if (res.length === 0) {
+    document.getElementById("result").textContent = t.noData;
+    return;
+  }
+
+  // ★ ここから先は「保存すべきデータ res だけ」を使って集計する
+
+  const last = res[res.length - 1];
+
+  // 区間長（秒）: あなたのツールは 20 秒固定なので 20
+  const dtSec = 20;
+  const dtHour = dtSec / 3600;
+
+  // 平均 METs：保存データの METs の単純平均
+  const avgMETs =
+    res.reduce((sum, r) => sum + r.METs, 0) / res.length;
+
+  // Max METs：保存データの METs の最大値
+  const maxMETs =
+    res.reduce((max, r) => (r.METs > max ? r.METs : max), 0);
+
+  // Ex（METs・時）：保存データから再計算（または last.exCum をそのまま使ってもよい）
+  const totalEx =
+    res.reduce((sum, r) => sum + r.METs * dtHour, 0);
+  // const totalEx = last.exCum;  // こちらでも OK（exCum が正しく入っているなら）
+
+  // kcal：保存データの累積 kcal（kcalCum の最後）
+  const totalKcal = last.kcalCum;
+
+  // 時間・距離・標高は stats をそのまま利用（ここは既に正しそう）
+  const h = Math.floor(stats.totalTimeSec / 3600);
+  const m = Math.floor((stats.totalTimeSec % 3600) / 60);
+  const s = stats.totalTimeSec % 60;
+  const totalTimeStr = `${h}h${m}m${s}s`;
+
+  const distKm = (stats.totalDist / 1000).toFixed(3);
+  const up = Math.round(stats.totalUp);
+  const down = Math.round(stats.totalDown);
+
+  document.getElementById("result").innerHTML = `
+    <div style="font-size:2.4em; font-weight:bold; color:#006400;">
+      平均 METs: ${avgMETs.toFixed(1)}
+    </div>
+    <div style="font-size:1.8em; font-weight:bold; color:#8B0000;">
+      Max METs: ${maxMETs.toFixed(1)}
+    </div>
+    <div style="font-size:1.8em; font-weight:bold; color:#00008B;">
+      Ex (METs・時): ${totalEx.toFixed(2)}
+    </div>
+    <div style="font-size:1.4em; font-weight:bold; color:#8B4513;">
+      kcal: ${Math.round(totalKcal)}
+    </div>
+    <div style="font-weight:bold; color:#000;">
+      ${t.totalTime}: ${totalTimeStr}
+    </div>
+    <div style="font-weight:bold; color:#000;">
+      ${t.totalDistance}: ${distKm} km (${t.ascentDescent}: ${up} m / ${down} m)
+    </div>
+  `;
+}
+
+
+/* ================================
+   メイン処理
+================================ */
+document.getElementById("processBtn").addEventListener("click", () => {
+  const file = document.getElementById("fileInput").files[0];
+  if (!file) {
+    alert(i18n[currentLang].selectFile);
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = reader.result;
+    const fmt = detectFormat(text);
+
+    let points = [];
+    if (fmt === "gpx") points = parseGPX(text);
+    else {
+      alert(i18n[currentLang].unknownFormat);
+      return;
+    }
+
+    const hasAllTime = points.every(p => p.time !== null);
+    const userModel = document.getElementById("timeGenSelect").value;
+
+    let internalModel;
+    if (userModel === "tobler") internalModel = "tobler";
+    else internalModel = hasAllTime ? "none" : "tobler";
+
+    document.getElementById("timeGenSelect").value = internalModel;
+
+    let pointsWithTime;
+    if (internalModel === "none") pointsWithTime = points;
+    else pointsWithTime = generateTimesTobler(points, new Date());
+
+    const segs = slice20(pointsWithTime);
+    const bodymass = getBodyMass();
+    const res = processSegments(segs, bodymass);
+
+    let totalDist = 0;
+    let totalUp = 0;
+    let totalDown = 0;
+    let maxMETs = 0;
+
+    for (const r of res) {
+      totalDist += r.d;
+      if (r.dh > 0) totalUp += r.dh;
+      else totalDown += Math.abs(r.dh);
+      if (r.METs > maxMETs) maxMETs = r.METs;
+    }
+
+    const totalTimeSec = segs.length * 20;
+
+    addCumulativeDistance(res);
+    window.lastResult = res;
+
+    showResult(res, {
+      totalDist,
+      totalUp,
+      totalDown,
+      maxMETs,
+      totalTimeSec
+    });
+  };
+
+  reader.readAsText(file);
+});
+
+/* ================================
+   Excel 保存
+================================ */
+document.getElementById("saveBtn").addEventListener("click", () => {
+  if (!window.lastResult) {
+    alert("先に計算を実行してください");
+    return;
+  }
+
+  const res = window.lastResult;
+
+  const rows = [
+    ["Index", "Time", "Altitude(m)", "Distance(m)", "Altitude Δ(m)", "Speed(km/h)",
+     "METs", "kcal/min", "Cumulative Dist(m)", "Cumulative Ex", "Cumulative kcal"]
+  ];
+
+  res.forEach((r, i) => {
+    rows.push([
+      i + 1,
+      r.start.toISOString(),
+      r.start.alt,
+      r.d.toFixed(2),
+      r.dh.toFixed(2),
+      r.speed.toFixed(2),
+      r.METs.toFixed(2),
+      r.Ek.toFixed(2),
+      r.cumDist.toFixed(2),
+      r.exCum.toFixed(2),
+      r.kcalCum.toFixed(2)
+    ]);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "20sec Data");
+
+  XLSX.writeFile(wb, "20sec_data.xlsx");
+});
+
+/* ================================
+   グラフ表示（改良版）
+================================ */
+let chart = null;
+
+document.getElementById("graphBtn").addEventListener("click", () => {
+  if (!window.lastResult) {
+    alert("先に計算を実行してください");
+    return;
+  }
+
+  const res = window.lastResult;
+
+  // labels は内部処理用にそのまま残す（文字列のまま）
+  const labels = res.map((r, i) => ((i * 20) / 60).toFixed(1));
+
+  // グラフ用の数値時間（分）
+  const timeMin = res.map((r, i) => (i * 20) / 60);
+
+  // グラフ用データ（x,y 形式）
+  const metsData = res.map((r, i) => ({ x: timeMin[i], y: r.METs }));
+  const altsData = res.map((r, i) => ({ x: timeMin[i], y: r.alt }));
+
+  document.getElementById("graphArea").innerHTML = `
+    <canvas id="graphCanvas" height="200"></canvas>
+    <button id="saveGraphBtn">グラフ保存</button>
+  `;
+
+  const ctx = document.getElementById("graphCanvas").getContext("2d");
+
+  if (chart) chart.destroy();
+
+  chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,   // ★ 内部処理用に残す（グラフでは使われない）
+      datasets: [
+        {
+          label: "METs",
+          data: metsData,     // ★ x,y 形式
+          borderColor: "blue",
+          borderWidth: 2,
+          pointRadius: 0,
+          yAxisID: "y1"
+        },
+        {
+          label: "Altitude (m)",
+          data: altsData,     // ★ x,y 形式
+          borderColor: "green",
+          borderWidth: 2,
+          pointRadius: 0,
+          yAxisID: "y2"
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          type: "linear",     // ★ 数値軸にする
+          title: { display: true, text: "Time (min)" },
+          grid: { display: false },
+          ticks: {
+    stepSize: 10,     // 10分刻み（完成済み）
+    tickLength: 10,    // ★ 外目盛りをしっかり出す
+    color: "#000",    // ★ 目盛りの色を黒で明示
+    maxRotation: 0,
+    minRotation: 0
+          },
+          border: { width: 2 }
+        },
+        y1: {
+          position: "left",
+          title: { display: true, text: "METs" },  // ★ 縦軸ラベル復活
+          grid: { display: false },
+          ticks: { tickLength: 8 },
+          border: { width: 2 }
+        },
+        y2: {
+          position: "right",
+          title: { display: true, text: "Altitude (m)" }, // ★ 縦軸ラベル復活
+          grid: { display: false },
+          ticks: { tickLength: 8 },
+          border: { width: 2 }
+        }
+      },
+      plugins: {
+        legend: {
+          labels: {
+            usePointStyle: false,
+            boxWidth: 40,
+            boxHeight: 2
+          }
+        }
+      }
+    }
+  });
+
+  document.getElementById("saveGraphBtn").addEventListener("click", () => {
+    const url = chart.toBase64Image("image/jpeg", 1.0);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "graph.jpg";
+    a.click();
+  });
+});
+</script>
+
+</body>
+</html>

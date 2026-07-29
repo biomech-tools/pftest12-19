@@ -53,15 +53,13 @@ body{font-family:'Hiragino Sans','Meiryo',sans-serif;background:#f1f5f9;color:#1
 #msg-area{font-size:12px;display:none;padding:8px 12px;border-radius:6px;margin-top:8px}
 #msg-area.ok{background:#dcfce7;color:#16a34a}
 #msg-area.err{background:#fee2e2;color:#dc2626}
-.small {
-  font-size: 0.6em;   /* h1 の 70% の大きさ */
-}
+
 </style>
 </head>
 <body>
 
 <div id="header">
-  <h1>新体力テスト結果の比較ツール <span class="small">(V1.0 Beta)</span></h1>
+  <h1>新体力テスト結果の比較ツール</h1>
   <p>文部科学省 新体力テスト実施要項に基づく評価の比較と分析</p>
 </div>
 
@@ -448,8 +446,8 @@ function exportPDF(){
   function yearOnlyCells(){
     return dsets.map(d=>{
       const C=d.computed;
-      const nameTag=hasMultipleNames&&C.name?`<br><span style="font-size:8px;font-weight:400;color:#475569">(${C.name})</span>`:'';
-      return`<th style="width:${dataColPct}%;text-align:center;padding:4px 3px;border:1px solid #cbd5e1;background:#f0f4f8;font-size:10px;font-weight:700">${C.year||'―'}年${nameTag}</th>`;
+      const nameTag=C.name?`<br><span style="font-size:8px;font-weight:400;color:#475569">(${C.name})</span>`:'';
+      return`<th style="width:${dataColPct}%;text-align:center;padding:7.8px 3px;border:1px solid #cbd5e1;background:#f0f4f8;font-size:10px;font-weight:700">${C.year||'―'}年${nameTag}</th>`;
     }).join('');
   }
   // Full header cells (used in 基本情報 only)
@@ -458,7 +456,7 @@ function exportPDF(){
       const C=d.computed;
       const aff=affiliMap[C.affil]||'―';
       const gr=C.grade_?C.grade_+'年':'―';
-      return`<th style="width:${dataColPct}%;text-align:center;padding:4px 3px;border:1px solid #cbd5e1;background:#f0f4f8;font-size:10px">${C.year||'―'}年<br><span style="font-size:9px;font-weight:400">${aff} ${gr}<br>${C.age!==null?C.age+'歳':''} No.${C.number||'―'}</span></th>`;
+      return`<th style="width:${dataColPct}%;text-align:center;padding:7.8px 3px;border:1px solid #cbd5e1;background:#f0f4f8;font-size:10px">${C.year||'―'}年<br><span style="font-size:9px;font-weight:400">${aff} ${gr}<br>${C.age!==null?C.age+'歳':''} No.${C.number||'―'}</span></th>`;
     }).join('');
   }
 
@@ -478,14 +476,15 @@ function exportPDF(){
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Hiragino Sans','Meiryo',sans-serif;font-size:10px;color:#1e293b;background:#fff}
 @page{margin:0;size:A4 portrait}
-.pa-page{padding:15mm 15mm 8mm;page-break-after:always;height:297mm;box-sizing:border-box;overflow:hidden}
-.pa-page:last-child{page-break-after:auto}
+.pa-page{padding:15mm 15mm 20mm;break-after:page;page-break-after:always;width:210mm;height:297mm;box-sizing:border-box;overflow:hidden;position:relative}
+.pa-page:last-child{break-after:auto;page-break-after:auto}
 table{width:100%;border-collapse:collapse}
-th,td{border:1px solid #cbd5e1;padding:8px 5px;font-size:10px}
+th,td{border:1px solid #cbd5e1;padding:5.72px 5px;font-size:10px}
+.p1-page th,.p1-page td{padding:5.14px 5px}
 th{background:#f0f4f8;font-weight:600}
-.sec-head{background:#1e3a5f;color:#fff;font-size:10px;font-weight:700;padding:3px 7px;border-radius:3px 3px 0 0;margin-top:14px;margin-bottom:0}
+.sec-head{background:#1e3a5f;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px 3px 0 0;margin-top:5px;margin-bottom:0}
 .sec-head:first-child{margin-top:0}
-.print-btn{display:block;margin:8px auto;padding:8px 28px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}
+.print-btn{position:fixed;top:8px;right:16px;z-index:9999;padding:8px 28px;background:#1e3a5f;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer}
 @media print{.print-btn{display:none}*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
 `;
 
@@ -518,7 +517,7 @@ th{background:#f0f4f8;font-weight:600}
     return`<tr><th>${label}</th>${cells}</tr>`;
   }
   const p1Physique=`
-  <div class="sec-head" style="margin-top:8px">体格・体組成</div>
+  <div class="sec-head" style="margin-top:4px">体格・体組成</div>
   <table>
     <tr><th style="width:${itemColPct}%">項目</th>${yearOnlyCells()}</tr>
     ${physRow('身長',C=>C.h,' cm')}
@@ -556,7 +555,7 @@ th{background:#f0f4f8;font-weight:600}
     return null;
   }
   const p1Test=`
-  <div class="sec-head" style="margin-top:8px">体力テスト結果（代表値・得点）</div>
+  <div class="sec-head" style="margin-top:4px">体力テスト結果（代表値・得点）</div>
   <table>
     <tr>
       <th style="width:${itemColPct}%">項目</th>${yearOnlyCells()}
@@ -602,7 +601,7 @@ th{background:#f0f4f8;font-weight:600}
     ['行動を調節する能力','反復横とび・立ち幅とび・ハンドボール投げ',C=>C.abilReg],
   ];
   const p1Abil=`
-  <div class="sec-head" style="margin-top:8px">行動体力の能力別平均得点</div>
+  <div class="sec-head" style="margin-top:4px">行動体力の能力別平均得点</div>
   <table>
     <tr><th style="width:${itemColPct}%">能力</th>${yearOnlyCells()}</tr>
     ${abilRows.map(([cat,sub,fn])=>{
@@ -613,27 +612,26 @@ th{background:#f0f4f8;font-weight:600}
         const col=colorForScore(val!==null?Math.round(val):null);
         const disp=val!==null?val.toFixed(1):'―';
         const diff=val!==null&&prev!==null?diffStr(val,prev):'';
-        cells+=`<td style="text-align:center;font-weight:700;color:${col};padding:3.5px 5px">${disp}${diff}</td>`;
+        cells+=`<td style="text-align:center;font-weight:700;color:${col};padding:8.24px 5px">${disp}${diff}</td>`;
       }
-      return`<tr><th style="font-weight:600;padding:3.5px 5px">${cat}<br><span style="font-size:8px;color:#94a3b8;font-weight:400">${sub}</span></th>${cells}</tr>`;
+      return`<tr><th style="font-weight:600;padding:8.24px 5px">${cat}<br><span style="font-size:8px;color:#94a3b8;font-weight:400">${sub}</span></th>${cells}</tr>`;
     }).join('')}
   </table>`;
 
-  const p1=`<div class="pa-page">
-  <div style="border-bottom:2px solid #1e3a5f;padding-bottom:5px;margin-bottom:10px">
-    <div style="font-size:20px;font-weight:700;text-align:center;color:#1e3a5f">新体力テスト結果の比較レポート</div>
+  const p1=`<div class="pa-page p1-page">
+  <div style="border-bottom:2px solid #1e3a5f;padding-bottom:2px;margin-bottom:5px">
+    <div style="font-size:18px;font-weight:700;text-align:center;color:#1e3a5f">新体力テスト結果の比較レポート</div>
   </div>
   ${p1Basic}
   ${p1Physique}
   ${p1Test}
   ${p1Abil}
-  <div style="text-align:center;margin-top:8mm;font-size:9px;color:#94a3b8">- 1 -</div>
 </div>`;
 
   // ── Page 2 ──
   // 体格・体組成分析
   const p2Comp=`
-  <div class="sec-head" style="margin-top:0">体格・体組成</div>
+  <div class="sec-head" style="margin-top:0">体格・体組成（脂肪量・除脂肪量内訳）</div>
   <table>
     <tr><th style="width:${itemColPct}%">指標</th>${yearOnlyCells()}</tr>
     ${physRow('体重 (kg)',C=>C.w,'')}
@@ -673,7 +671,7 @@ th{background:#f0f4f8;font-weight:600}
     ['合計点',C=>C.ts.total],
   ];
   const p2TScore=`
-  <div class="sec-head" style="margin-top:8px">体力テスト結果のTスコア</div>
+  <div class="sec-head" style="margin-top:5px">体力テスト結果のTスコア</div>
   <table>
     <tr><th style="width:${itemColPct}%">項目</th>${yearOnlyCells()}</tr>
     ${tsItems.map(([label,fn],rowIdx)=>{
@@ -696,6 +694,7 @@ th{background:#f0f4f8;font-weight:600}
   const radarLabels=['握力','上体起こし','長座体前屈','反復横とび','持久走/\n20mシャトルラン','50m走','立ち幅とび','ハンドボール投げ'];
   const radarDataJS=JSON.stringify(dsets.map(d=>({
     year:d.computed.year,
+    name:d.computed.name||'',
     values:[d.computed.ts.grip,d.computed.ts.situp,d.computed.ts.fb,d.computed.ts.ss,
             d.computed.ts.cardio,d.computed.ts.dash,d.computed.ts.bj,d.computed.ts.hb]
   })));
@@ -762,8 +761,9 @@ th{background:#f0f4f8;font-weight:600}
     '  datasets.forEach(function(ds,di){',
     '    var col=LINE_COLORS[di%LINE_COLORS.length];',
     '    var y=legY+di*16;',
-    '    ctx.fillStyle="#1e293b";ctx.fillText(ds.year+"\u5e74",W-8,y);',
-    '    ctx.fillStyle=col;ctx.fillRect(W-8-ctx.measureText(ds.year+"\u5e74").width-22,y-4,18,8);',
+    '    var legLabel=ds.year+"\u5e74"+(ds.name?"("+ds.name+")":"");',
+    '    ctx.fillStyle="#1e293b";ctx.fillText(legLabel,W-46,y);',
+    '    ctx.fillStyle=col;ctx.fillRect(W-46-ctx.measureText(legLabel).width-22,y-4,18,8);',
     '  });',
     '}',
     'window.addEventListener("load",function(){',
@@ -774,13 +774,12 @@ th{background:#f0f4f8;font-weight:600}
   ].join('\n');
 
   const p2=`<div class="pa-page">
-  <div style="border-bottom:2px solid #1e3a5f;padding-bottom:5px;margin-bottom:10px">
-    <div style="font-size:20px;font-weight:700;text-align:center;color:#1e3a5f">新体力テスト結果の比較レポート（分析資料）</div>
+  <div style="border-bottom:2px solid #1e3a5f;padding-bottom:3px;margin-bottom:6px">
+    <div style="font-size:18px;font-weight:700;text-align:center;color:#1e3a5f">新体力テスト結果の比較レポート（分析資料）</div>
   </div>
   ${p2Comp}
   ${p2TScore}
-  <canvas id="multi-radar" width="520" height="340" style="display:block;margin:calc(10px + 6mm) auto 0"></canvas>
-  <div style="text-align:center;margin-top:18mm;font-size:9px;color:#94a3b8">- 2 -</div>
+  <canvas id="multi-radar" width="600" height="360" style="display:block;margin:10mm auto 0"></canvas>
 </div>`;
 
   const T={
@@ -825,7 +824,7 @@ window.addEventListener("load", () => {
   const now = Date.now();
   const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
   if (!lastShown || now - lastShown > THIRTY_DAYS) {
-    alert("CAUTION: This tool is protected by copyright. Unauthorized downloading, copying, or redistribution is prohibited.\n\u6ce8\u610f\uff1a\u672c\u30c4\u30fc\u30eb\u306f\u8457\u4f5c\u6a29\u306b\u3088\u308a\u4fdd\u8b77\u3055\u308c\u3066\u3044\u307e\u3059\uff0e\u7121\u65ad\u3067\u306e\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\uff0c\u8907\u88fd\uff0c\u518d\u914d\u5e03\u3092\u7981\u3058\u307e\u3059\uff0e");
+    alert("CAUTION: This tool is protected by copyright (\u00a92026 A. Azuma. All Rights Reserved). Unauthorized downloading, copying, or redistribution is prohibited.\n\u6ce8\u610f\uff1a\u672c\u30c4\u30fc\u30eb\u306f\u8457\u4f5c\u6a29\u306b\u3088\u308a\u4fdd\u8b77\u3055\u308c\u3066\u3044\u307e\u3059 (\u00a92026 A. Azuma. All Rights Reserved)\uff0e\u7121\u65ad\u3067\u306e\u30c0\u30a6\u30f3\u30ed\u30fc\u30c9\uff0c\u8907\u88fd\uff0c\u518d\u914d\u5e03\u3092\u7981\u3058\u307e\u3059\uff0e");
     localStorage.setItem("warningLastShown", now);
   }
 });

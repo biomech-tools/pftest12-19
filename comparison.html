@@ -535,13 +535,13 @@ th{background:#f0f4f8;font-weight:600}
   </table>`;
 
   // 体力テスト結果
-  function scoreRow(label,fn,scoreFn,isLower=false){
+  function scoreRow(label,fn,scoreFn,isLower=false,forceDec=false){
     let cells='';
     for(let i=0;i<dsets.length;i++){
       const val=fn(dsets[i].computed);
       const sc=scoreFn(dsets[i].computed);
       const psc=i>0?scoreFn(dsets[i-1].computed):null;
-      const dispVal=val!==null?(typeof val==='number'&&!Number.isInteger(val)?val.toFixed(1):val):'―';
+      const dispVal=val!==null?(forceDec&&typeof val==='number'?val.toFixed(1):(typeof val==='number'&&!Number.isInteger(val)?val.toFixed(1):val)):'―';
       const col=colorForScore(sc);
       const scDisp=sc!==null?`<span style="color:${col};font-weight:700"> [${sc}点]</span>`:'';
       const diff=sc!==null&&psc!==null?diffStr(sc,psc,isLower):'';
@@ -577,7 +577,7 @@ th{background:#f0f4f8;font-weight:600}
         return`<td style="text-align:center">${disp}${scDisp}${diff}</td>`;
       }).join('')}
     </tr>
-    ${scoreRow('50m走 (秒)',C=>C.dash,C=>C.S.dash,true)}
+    ${scoreRow('50m走 (秒)',C=>C.dash,C=>C.S.dash,true,true)}
     ${scoreRow('立ち幅とび (cm)',C=>C.bj,C=>C.S.bj)}
     ${scoreRow('ハンドボール投げ (m)',C=>C.hb,C=>C.S.hb)}
     <tr style="background:#f8fafc">
@@ -780,6 +780,7 @@ th{background:#f0f4f8;font-weight:600}
   ${p2Comp}
   ${p2TScore}
   <canvas id="multi-radar" width="600" height="360" style="display:block;margin:10mm auto 0"></canvas>
+  <div style="font-size:8px;color:#64748b;margin-top:4px;text-align:center;line-height:1.4">同一標準データに基づいた各テスト項目のTスコアは同一個人内の異なる項目間の比較に役立てられるが，異なる標準データに基づく比較（年度比較など）の解釈には注意を要する．</div>
 </div>`;
 
   const T={
